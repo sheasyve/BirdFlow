@@ -4786,7 +4786,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_5cmain_simulate, "\n    Simulate wind particles.\n\n    Parameters:\n    - positions: Array of particle positions (num_particles, 3).\n    - velocities: Array of particle velocities (num_particles, 3).\n    - time_step: Time step for the simulation.\n    - wind_direction: Wind direction vector (3,).\n    ");
+PyDoc_STRVAR(__pyx_doc_5cmain_simulate, "\n    Simulate wind on the particles.\n\n    Parameters:\n    - positions: Array of particle positions (num_particles, 3).\n    - velocities: Array of particle velocities (num_particles, 3).\n    - time_step: Time step for the simulation.\n    - wind_direction: Wind direction vector (3,).\n    ");
 static PyMethodDef __pyx_mdef_5cmain_1simulate = {"simulate", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_5cmain_1simulate, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_5cmain_simulate};
 static PyObject *__pyx_pw_5cmain_1simulate(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL

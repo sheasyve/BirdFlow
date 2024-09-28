@@ -7,6 +7,8 @@ from . import cmain
 
 COEFFICIENT_OF_FRICTION = 1.0
 EPSILON = 1e-4
+WIND_DIRECTION = [1.0, 0.0, 0.0]
+PARTICLE_COLOR = [1.0, 1.0, 1.0, 0.5]
 
 bl_info = {
     "name": "Aerodynamic Simulator",
@@ -57,10 +59,10 @@ class WindSim(bpy.types.Operator):
             scene = context.scene
             obj = context.active_object
             if obj and obj.type == 'MESH':
-                num_particles = scene.wind_simulation_num_particles
-                dt = scene.wind_simulation_dt
-                num_frames = scene.wind_simulation_num_frames
-                spread = scene.wind_simulation_particle_spread
+                num_particles = scene.aerodynamic_simulation_num_particles
+                dt = scene.aerodynamic_simulation_dt
+                num_frames = scene.aerodynamic_simulation_num_frames
+                spread = scene.aerodynamic_simulation_particle_spread
                 mesh = obj.data
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
@@ -91,13 +93,13 @@ class WindSim(bpy.types.Operator):
         if mesh is None:
             mesh = bpy.data.meshes.new("ParticleMesh")
             bm = bmesh.new()
-            bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.05)#Particle init, and r
+            bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.025)#Particle init, and r
             bm.to_mesh(mesh)
             bm.free()
             material = bpy.data.materials.get("ParticleMaterial")
             if material is None:
                 material = bpy.data.materials.new(name="ParticleMaterial")
-                material.diffuse_color = (1.0, 1.0, 1.0, 1.0) 
+                material.diffuse_color = PARTICLE_COLOR
             if len(mesh.materials) == 0:
                 mesh.materials.append(material)
         return mesh
@@ -120,10 +122,10 @@ class WindSim(bpy.types.Operator):
         return particle_objects
 
     def run_simulation(self, positions, velocities, bvh_tree, num_frames, dt, particle_objects):
-        wind_direction = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            positions, velocities = cmain.simulate(positions, velocities, dt, wind_direction)
+            positions, velocities = cmain.simulate(positions, velocities, dt, wind)
             for i in range(len(positions)):
                 origin = positions[i] - velocities[i] * dt
                 velocity_norm = np.linalg.norm(velocities[i])
@@ -143,46 +145,46 @@ class WindSim(bpy.types.Operator):
                 particle.keyframe_insert(data_path="location", frame=frame)
 
 class WindSimPanel(bpy.types.Panel):
-    bl_label = "Wind Simulator"
-    bl_idname = "OBJECT_PT_wind_simulator_panel"
+    bl_label = "Aerodynamic Simulator"
+    bl_idname = "aerodynamic_simulator_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Wind'
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        layout.label(text="Wind Simulator Settings:")
-        layout.prop(scene, "wind_simulation_num_particles")
-        layout.prop(scene, "wind_simulation_particle_spread")
-        layout.prop(scene, "wind_simulation_num_frames")
-        layout.prop(scene, "wind_simulation_dt")
+        layout.label(text="Simulator Settings:")
+        layout.prop(scene, "aerodynamic_simulation_num_particles")
+        layout.prop(scene, "aerodynamic_simulation_particle_spread")
+        layout.prop(scene, "aerodynamic_simulation_num_frames")
+        layout.prop(scene, "aerodynamic_simulation_dt")
         layout.operator("object.wind_sim_operator", text="Run Simulation")
 
 def register():
     bpy.utils.register_class(WindSim)
     bpy.utils.register_class(WindSimPanel)
-    bpy.types.Scene.wind_simulation_num_particles = bpy.props.IntProperty(
+    bpy.types.Scene.aerodynamic_simulation_num_particles = bpy.props.IntProperty(
         name="Number of Particles",
         description="Total number of wind particles",
         default=500,
         min=1,
         max=10000
     )
-    bpy.types.Scene.wind_simulation_particle_spread = bpy.props.FloatProperty(
+    bpy.types.Scene.aerodynamic_simulation_particle_spread = bpy.props.FloatProperty(
         name="Particle Spread",
         description="Distance between particles",
         default=0.1,
         min=0.001,
         max=100.0
     )
-    bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
+    bpy.types.Scene.aerodynamic_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
         default=100,
         min=1,
         max=1000
     )
-    bpy.types.Scene.wind_simulation_dt = bpy.props.FloatProperty(
+    bpy.types.Scene.aerodynamic_simulation_dt = bpy.props.FloatProperty(
         name="Time Step",
         description="Time step for the simulation",
         default=0.1,
@@ -193,10 +195,10 @@ def register():
 def unregister():
     bpy.utils.unregister_class(WindSim)
     bpy.utils.unregister_class(WindSimPanel)
-    del bpy.types.Scene.wind_simulation_num_particles
-    del bpy.types.Scene.wind_simulation_particle_spread
-    del bpy.types.Scene.wind_simulation_num_frames
-    del bpy.types.Scene.wind_simulation_dt
+    del bpy.types.Scene.aerodynamic_simulation_num_particles
+    del bpy.types.Scene.aerodynamic_simulation_particle_spread
+    del bpy.types.Scene.aerodynamic_simulation_num_frames
+    del bpy.types.Scene.aerodynamic_simulation_dt
 
 if __name__ == "__main__":
     register()
