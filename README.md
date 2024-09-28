@@ -1,71 +1,49 @@
-# Aerodynamic Sim Engine Blender-Extension
-## Compilation for now
-/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
+# Custom Aerodynamic Simulator Physics Engine (Blender-Extension)
+# Animation Project - Proof of concept stage 
+![image](https://github.com/user-attachments/assets/8ea0280e-d33f-4749-b64b-15d30882ccf9)
+![0019](https://github.com/user-attachments/assets/50343c49-76ed-40be-afd1-28e302620c59)
+![0028](https://github.com/user-attachments/assets/951b3b26-a395-4636-8b12-4a4dee7ed8f4)
+![0044](https://github.com/user-attachments/assets/1deba812-3a6a-4a65-a236-6459627b2c1c)
 
+# My goal is to build a custom aerodynamic simulation framework in blender, distributed as an extension.
+# The particle mesh management and physics simulation will be custom built with python and cython. 
+# I am not using the built in blender simulations, rather using blender as a rendering environment for my code.
+# For the final deliverable, I hope to implement most of the following.
+- ## Advanced aerodynamic visualisation
+    - I would like to be able to import any model, particularly cars, and use my extension to quickly generate an accurate and stunning visualisation of wind particle flow.
+    - Advanced custom particle physics engine that mimic wind behaviour accurately and efficiently.
+    - Full set of parameters like wind speed, direction, and others.
+- ## Easily tuneable simulation
+    - Allow for different wind simulation paramaters.
+          - More realistic wind patterns, wind tunnel setups, storm conditions.
+    - Optimise to allow for live interaction.
+          - It would be cool to click with the mouse and see wind particles be placed at a certain area, to better understand the aerodynamics. Not sure if this one is achievable but it might be in the viewport.
+    - Distribute the extension officially through blender.
+
+### Currently, I have a simple custom wind particle physics engine set up as a blender extension.
+### The extension is built in python, cython (c in python for heavy tasks) and uses the bpy library to interact with blender.
+### For now, the user can input some parameters like particle amount and density, and a simulation will be automatically generated in blender.
+### The physics are very unrealistic right now, but there is still collision detection, sliding and redirection set up (somewhat)
+
+## Compilation for now
+```bash
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
+```
 Should move the extension to the blender folder eventually
 
-## Animation Project starting phase
-
-# Notes 
+#### Wheel Notes 
+```bash
 python setup.py build_ext --inplace
 python setup.py bdist_wheel
-
+```
 This command will generate a .whl file in the dist/ directory. You can then distribute this wheel, and it can be installed via pip using:
-
+```bash
 pip install dist/your_wheel_file.whl
-
+```
 you can move your wheel file there after building it:
 
-bash
-Copy code
+```bash
 mv dist/*.whl wheels/
+```
 
 
-### In blender:
-import importlib
-import blender_extension  
-importlib.reload(blender_extension)\
-bpy.ops.script.reload()
-
-
-#### In init.py
-import bpy
-import importlib
-if "my_extension" in locals():
-    importlib.reload(my_extension)
-else:
-    from . import my_extension
-
-
-2. Point Blender to a Custom Add-on Directory:
-Blender allows you to set custom directories for add-ons. Here’s how to configure it:
-
-Open Blender Preferences:
-In Blender, go to Edit > Preferences (or Blender > Preferences on macOS).
-
-Set a Custom Add-on Path:
-
-In the Preferences window, click on the File Paths tab.
-Find the Scripts section and click the folder icon next to it.
-Navigate to the folder where your add-on is located (your custom directory where you have your __init__.py and the compiled Cython .so file).
-Save Preferences:
-
-Once you've set the custom add-on folder path, click the Save Preferences button in the lower-left corner of the Preferences window.
-Install and Enable the Add-on:
-
-Go to the Add-ons tab, click Install, and select the __init__.py file from your custom folder.
-After installing, make sure to enable the add-on by checking the box next to it.
-3. Check Add-on Path via Python Script:
-You can also confirm where Blender is looking for add-ons by running this Python script inside Blender's scripting tab:
-
-python
-Copy code
-import bpy
-print(bpy.utils.script_paths("addons"))
-This will print out the directories Blender is currently using for add-ons.
-
-4. Rebuilding Workflow:
-Once you've set Blender to look at the correct folder:
-
-Continue running the python setup.py build_ext --inplace command from that same directory.
-Blender will pick up the updated .so or .pyd file from the custom folder after you either reload the add-on or use the auto-reload script.
