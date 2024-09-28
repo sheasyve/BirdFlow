@@ -1,4 +1,6 @@
 import bpy
+import numpy as np
+from scipy.linalg import solve
 
 bl_info = {
     "name": "Test Extension",
@@ -22,7 +24,7 @@ class Extension(bpy.types.Operator):
         return {'FINISHED'}
 
 class CustomPanel(bpy.types.Panel):
-    bl_label = "Custom Panel"
+    bl_label = "Aero Panel"
     bl_idname = "OBJECT_PT_custom_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -31,12 +33,12 @@ class CustomPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        layout.label(text="Hello World")
+        layout.label(text="Shea's Custom Panel")
         layout.operator("object.test_operator")
-        layout.prop(obj, "my_custom_property")
+        layout.prop(obj, "Shea's Custom Property")
 
 bpy.types.Object.my_custom_property = bpy.props.StringProperty(
-    name="My Custom Property",
+    name="Shea's Custom Property",
     description="A custom property for objects",
     default="Default Value"
 )
