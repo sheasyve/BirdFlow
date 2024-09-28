@@ -54,6 +54,15 @@ class WindSim(bpy.types.Operator):
         max=1.0
     )
 
+    def get_bvh_tree(self, obj):
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.transform(obj.matrix_world)
+        bm.normal_update()
+        bvh_tree = BVHTree.FromBMesh(bm)
+        bm.free()
+        return bvh_tree
+
     def execute(self, context):
         try:
             scene = context.scene
@@ -63,37 +72,30 @@ class WindSim(bpy.types.Operator):
                 dt = scene.aerodynamic_simulation_dt
                 num_frames = scene.aerodynamic_simulation_num_frames
                 spread = scene.aerodynamic_simulation_particle_spread
-                mesh = obj.data
-                bm = bmesh.new()
-                bm.from_mesh(mesh)
-                bm.transform(obj.matrix_world)
-                bm.normal_update()
-                bvh_tree = BVHTree.FromBMesh(bm)
-                bm.free()
-                initial_position = 10 * spread
-                positions = np.random.rand(num_particles, 3) * np.array([initial_position, initial_position, initial_position]) - np.array([initial_position / 2, initial_position / 2, initial_position / 2])
+                p_loc = 10 * spread
+                positions = np.random.rand(num_particles, 3) * np.array([p_loc, p_loc, p_loc]) - np.array([p_loc / 2, p_loc / 2, p_loc / 2])
                 velocities = np.zeros((num_particles, 3), dtype=np.float64)
-                particle_collection = self.create_particle_collection()
-                particle_objects = self.create_particles(particle_collection, positions)
+                particles = self.make_particles(self.create_particle_collection(), positions)
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
-                self.run_simulation(positions, velocities, bvh_tree, num_frames, dt, particle_objects)
-                self.report({'INFO'}, "Aerodynamic simulation finished.")
+                self.run_simulation(positions, velocities, self.get_bvh_tree(obj), num_frames, dt, particles)
+                self.report({'INFO'}, "Simulation finished.")
                 return {'FINISHED'}
             else:
-                self.report({'ERROR'}, "Select a mesh object.")
+                self.report({'ERROR'}, "Select a mesh.")
                 return {'CANCELLED'}
         except Exception as e:
             self.report({'ERROR'}, f"Simulation failed: {e}")
             print(f"Error during simulation: {e}")
             return {'CANCELLED'}
 
-    def create_particle_mesh(self):
+    def create_mesh(self):
+        #Create the particle mesh where the particles will be displayed
         mesh = bpy.data.meshes.get("ParticleMesh")
         if mesh is None:
             mesh = bpy.data.meshes.new("ParticleMesh")
             bm = bmesh.new()
-            bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.025)#Particle init, and r
+            bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.025)#Particle specs, notably r
             bm.to_mesh(mesh)
             bm.free()
             material = bpy.data.materials.get("ParticleMaterial")
@@ -105,46 +107,52 @@ class WindSim(bpy.types.Operator):
         return mesh
 
     def create_particle_collection(self):
-        particle_collection = bpy.data.collections.get("WindParticles")
-        if not particle_collection:
-            particle_collection = bpy.data.collections.new("WindParticles")
-            bpy.context.scene.collection.children.link(particle_collection)
-        return particle_collection
+        pc = bpy.data.collections.get("WindParticles")
+        if not pc:
+            pc = bpy.data.collections.new("WindParticles")
+            bpy.context.scene.collection.children.link(pc)
+        return pc
 
-    def create_particles(self, particle_collection, positions):
-        particle_mesh = self.create_particle_mesh()
+    def make_particles(self, particle_collection, positions):
+        #Initialize the particles
+        mesh = self.create_mesh()
         particle_objects = []
-        for i, pos in enumerate(positions):
-            particle = bpy.data.objects.new(f"Particle_{i}", particle_mesh)
+        for i, pos in enumerate(positions):#One particle per position
+            particle = bpy.data.objects.new(f"Particle_{i}", mesh)
             particle.location = pos
             particle_collection.objects.link(particle)
             particle_objects.append(particle)
         return particle_objects
 
+    def redirect(self, positions, velocities,location, normal, i):
+        #Reflect the particle off the surface
+        normal = np.array(normal)
+        normal /= np.linalg.norm(normal)
+        v_normal = np.dot(velocities[i], normal) * normal #Deflect the particle
+        velocities[i] = velocities[i] - v_normal
+        velocities[i] *= COEFFICIENT_OF_FRICTION
+        positions[i] = np.array(location) + normal * EPSILON
+
     def run_simulation(self, positions, velocities, bvh_tree, num_frames, dt, particle_objects):
         wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            positions, velocities = cmain.simulate(positions, velocities, dt, wind)
-            for i in range(len(positions)):
+            positions, velocities = cmain.simulate(positions, velocities, dt, wind)#Call the c++ function for wind simulation
+            for i in range(len(positions)):#Check for collisions with ray casting
                 origin = positions[i] - velocities[i] * dt
                 velocity_norm = np.linalg.norm(velocities[i])
                 if velocity_norm == 0:
                     continue
                 direction = Vector(velocities[i] / velocity_norm)
                 location, normal, index, distance = bvh_tree.ray_cast(Vector(origin), direction, velocity_norm * dt)
-                if location is not None and distance <= velocity_norm * dt:
-                    normal = np.array(normal)
-                    normal /= np.linalg.norm(normal)
-                    v_normal = np.dot(velocities[i], normal) * normal
-                    velocities[i] = velocities[i] - v_normal
-                    velocities[i] *= COEFFICIENT_OF_FRICTION
-                    positions[i] = np.array(location) + normal * EPSILON
-            for i, particle in enumerate(particle_objects):
+                if location is not None and distance <= velocity_norm * dt:#Intersecting with the mesh, redirect the particle
+                    self.redirect(positions, velocities, location, normal, i)
+            for i, particle in enumerate(particle_objects):#Update the particle locations
                 particle.location = positions[i]
                 particle.keyframe_insert(data_path="location", frame=frame)
 
 class WindSimPanel(bpy.types.Panel):
+    #Create the panel in blender for the simulator
     bl_label = "Aerodynamic Simulator"
     bl_idname = "aerodynamic_simulator_panel"
     bl_space_type = 'VIEW_3D'
@@ -161,6 +169,7 @@ class WindSimPanel(bpy.types.Panel):
         layout.operator("object.wind_sim_operator", text="Run Simulation")
 
 def register():
+    #Register the simulator class, panel, and panel options in blender
     bpy.utils.register_class(WindSim)
     bpy.utils.register_class(WindSimPanel)
     bpy.types.Scene.aerodynamic_simulation_num_particles = bpy.props.IntProperty(
