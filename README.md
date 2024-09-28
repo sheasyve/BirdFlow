@@ -17,8 +17,8 @@
 - ## Easily tuneable simulation
     - Allow for different wind simulation paramaters.
           - More realistic wind patterns, wind tunnel setups, storm conditions.
-    - Optimise to allow for live interaction.
-          - It would be cool to click with the mouse and see wind particles be placed at a certain area, to better understand the aerodynamics. Not sure if this one is achievable but it might be in the viewport.
+    - Optimise for quick and high quality results.
+      - Custom ray casting algorithm. Currently I'm using blenders built in ray casting module in python for particle object collisions. The issue is this, doesn't work in cython. Implementing custom ray tracing for every object will be a challenge, but may be worth the performance gain.
     - Distribute the extension officially through blender.
 
 ## Current State
