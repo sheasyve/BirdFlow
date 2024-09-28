@@ -1,26 +1,30 @@
 import bpy
 import numpy as np
-from scipy.linalg import solve
+from . import cmain  
 
 bl_info = {
     "name": "Test Extension",
     "author": "Shea",
-    "blender": (4, 2, 1),
+    "blender": (4, 2, 1),  
     "category": "Object"
 }
-
-def test_operator(self, context):
-    self.layout.label(text="Hello World")
-
-def menu_func(self, context):
-    self.layout.operator("object.test_operator")
 
 class Extension(bpy.types.Operator):
     bl_idname = "object.test_operator"
     bl_label = "Test Operator"
-    
     def execute(self, context):
-        self.report({'INFO'}, "Hello World")
+        obj = bpy.context.active_object
+        if obj and obj.type == 'MESH':
+            vertices = np.array([v.co for v in obj.data.vertices], dtype=np.float64)
+            print("Mesh Vertices:", vertices)
+            velocity = np.zeros((10, 10), dtype=np.float64)
+            pressure = np.random.rand(10, 10)
+            dt = 0.01
+            updated_velocity = cmain.simulate(velocity, pressure, dt)
+            print("Updated Velocity Field:", updated_velocity)
+            self.report({'INFO'}, "Simulation complete")
+        else:
+            self.report({'ERROR'}, "No mesh object selected")
         return {'FINISHED'}
 
 class CustomPanel(bpy.types.Panel):
@@ -35,7 +39,7 @@ class CustomPanel(bpy.types.Panel):
         obj = context.object
         layout.label(text="Shea's Custom Panel")
         layout.operator("object.test_operator")
-        layout.prop(obj, "Shea's Custom Property")
+        layout.prop(obj, "my_custom_property")
 
 bpy.types.Object.my_custom_property = bpy.props.StringProperty(
     name="Shea's Custom Property",
@@ -46,13 +50,10 @@ bpy.types.Object.my_custom_property = bpy.props.StringProperty(
 def register():
     bpy.utils.register_class(Extension)
     bpy.utils.register_class(CustomPanel)
-    bpy.types.VIEW3D_MT_object.append(menu_func)
 
 def unregister():
     bpy.utils.unregister_class(Extension)
     bpy.utils.unregister_class(CustomPanel)
-    bpy.types.VIEW3D_MT_object.remove(menu_func)
-    del bpy.types.Object.my_custom_property
 
 def main():
     register()
