@@ -1,6 +1,9 @@
 import bpy
+import bmesh
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 import numpy as np
-from . import cmain
+from . import cmain  # Import your Cython module
 
 bl_info = {
     "name": "Wind Simulation",
@@ -24,7 +27,17 @@ class WindSimulationOperator(bpy.types.Operator):
             num_particles = 500 
             dt = 0.1
             num_frames = 100
-            object_vertices = np.array([obj.matrix_world @ v.co for v in obj.data.vertices], dtype=np.float64)
+
+            # Create a BVH tree for the object
+            mesh = obj.data
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            bm.transform(obj.matrix_world)
+            bm.normal_update()
+
+            bvh_tree = BVHTree.FromBMesh(bm)
+            bm.free()
+
 
             positions = np.random.rand(num_particles, 3) * np.array([10, 10, 10]) - np.array([5, 5, 5])
             velocities = np.zeros((num_particles, 3), dtype=np.float64)
@@ -34,23 +47,49 @@ class WindSimulationOperator(bpy.types.Operator):
                 particle_collection = bpy.data.collections.new("WindParticles")
                 bpy.context.scene.collection.children.link(particle_collection)
 
+            # Create particle objects using empties for better performance
             particle_objects = []
             for i in range(num_particles):
-                bpy.ops.mesh.primitive_uv_sphere_add(radius=0.05, location=positions[i])
-                particle = bpy.context.active_object
-                particle.name = f"Particle_{i}"
-                particle.hide_render = True 
-                particle_objects.append(particle)
+                particle = bpy.data.objects.new(f"Particle_{i}", None)
+                particle.empty_display_type = 'SPHERE'
+                particle.empty_display_size = 0.05
+                particle.location = positions[i]
                 particle_collection.objects.link(particle)
-                collections_to_unlink = [col for col in particle.users_collection if col != particle_collection]
-                for col in collections_to_unlink:
-                    col.objects.unlink(particle)
+                particle_objects.append(particle)
 
+            # Set up animation frames
             bpy.context.scene.frame_start = 1
             bpy.context.scene.frame_end = num_frames
+
+            # Run simulation and animate particles
             for frame in range(1, num_frames + 1):
                 bpy.context.scene.frame_set(frame)
-                positions, velocities = cmain.simulate(positions, velocities, object_vertices, dt)
+
+                # Run simulation step without collision detection
+                positions, velocities = cmain.simulate(positions, velocities, dt)
+
+                # Perform collision detection in Python
+                for i in range(num_particles):
+                    origin = positions[i] - velocities[i] * dt
+                    velocity_norm = np.linalg.norm(velocities[i])
+
+                    if velocity_norm == 0:
+                        continue  # Skip if velocity is zero
+
+                    direction = Vector(velocities[i] / velocity_norm)
+
+                    # Perform ray cast
+                    location, normal, index, distance = bvh_tree.ray_cast(
+                        Vector(origin), direction, velocity_norm * dt
+                    )
+
+                    if location is not None and distance <= velocity_norm * dt:
+                        # Adjust position and velocity upon collision
+                        positions[i] = np.array(location)
+                        normal_np = np.array(normal)
+                        velocities[i] = velocities[i] - 2 * np.dot(velocities[i], normal_np) * normal_np
+
+                # Update particle positions
                 for i, particle in enumerate(particle_objects):
                     particle.location = positions[i]
                     particle.keyframe_insert(data_path="location", frame=frame)
@@ -60,7 +99,6 @@ class WindSimulationOperator(bpy.types.Operator):
         else:
             self.report({'ERROR'}, "Please select a mesh object.")
             return {'CANCELLED'}
-
 
 class WindSimulationPanel(bpy.types.Panel):
     bl_label = "Wind Simulation"

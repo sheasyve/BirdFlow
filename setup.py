@@ -8,7 +8,10 @@ extensions = [
     Extension(
         "cmain",
         sources=["cmain.pyx"],
-        include_dirs=[np.get_include()],
+        include_dirs=[
+            np.get_include(),
+            "/usr/include/python3.11",  
+        ],
         libraries=["stdc++"],
         define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
     )
