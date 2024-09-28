@@ -1,4 +1,9 @@
 # Blender-Extension
+
+## Animation Project starting phase
+
+
+# Notes 
 python setup.py build_ext --inplace
 python setup.py bdist_wheel
 
