@@ -1,6 +1,5 @@
-# Custom Aerodynamic Simulator Physics Engine (Blender-Extension)
+# Custom Physics Engine for Aerodynamic Simulation (Blender Extension) 
 # Animation Project - Proof of concept stage 
-
 
 <img src="https://github.com/user-attachments/assets/50343c49-76ed-40be-afd1-28e302620c59" alt="0019" width="600"/>
 <img src="https://github.com/user-attachments/assets/951b3b26-a395-4636-8b12-4a4dee7ed8f4" alt="0028" width="600"/>
