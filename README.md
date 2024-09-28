@@ -13,11 +13,13 @@
 - ## Advanced aerodynamic visualisation
     - I would like to be able to import any model, particularly cars, and use my extension to quickly generate an accurate and stunning visualisation of wind particle flow.
     - Advanced custom particle physics engine that mimic wind behaviour accurately and efficiently.
-    - Full set of parameters like wind speed, direction, and others.
-- ## Easily tuneable simulation
+    - Visualisation options in addition to particles like smoke, or vector lines.
+- ## Easily tuneable simulation with quick low effort results
+    - Enable users to quickly generate a visualisation for any combination of models.  
     - Allow for different wind simulation paramaters.
+          - Full set of parameters like wind speed, direction, and others.
           - More realistic wind patterns, wind tunnel setups, storm conditions.
-    - Optimise for quick and high quality results.
+    - Optimise for quick and high quality results with thousands of particles.
       - Custom ray casting algorithm. Currently I'm using blenders built in ray casting module in python for particle object collisions. The issue is this, doesn't work in cython. Implementing custom ray tracing for every object will be a challenge, but may be worth the performance gain.
     - Distribute the extension officially through blender.
 
