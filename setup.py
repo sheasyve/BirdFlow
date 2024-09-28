@@ -10,7 +10,7 @@ extensions = [
         sources=["cmain.pyx"],
         include_dirs=[
             np.get_include(),
-            "/usr/include/python3.11",  
+            "/usr/include/python3.11",  # Need to change this to blender python binary path
         ],
         libraries=["stdc++"],
         define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],

@@ -1,7 +1,10 @@
 # Blender-Extension
+## Compilation for now
 /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
-## Animation Project starting phase
 
+Should move the extension to the blender folder eventually
+
+## Animation Project starting phase
 
 # Notes 
 python setup.py build_ext --inplace

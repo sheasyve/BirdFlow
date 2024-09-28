@@ -10,7 +10,7 @@ def simulate(
     np.ndarray[np.float64_t, ndim=1] wind_direction
 ):
     """
-    Simulate wind particles.
+    Simulate wind on the particles.
 
     Parameters:
     - positions: Array of particle positions (num_particles, 3).
