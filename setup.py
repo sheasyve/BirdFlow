@@ -1,6 +1,8 @@
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
+from Cython.Compiler import Options
+Options.language_level = 3
 
 extensions = [
     Extension(
@@ -8,7 +10,7 @@ extensions = [
         sources=["cmain.pyx"],
         include_dirs=[np.get_include()],
         libraries=["stdc++"],
-        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],  
+        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
     )
 ]
 
