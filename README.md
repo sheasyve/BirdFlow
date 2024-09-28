@@ -27,7 +27,7 @@
 - #### Currently, I have a simple custom wind particle physics engine set up as a blender extension.
 - #### The extension is built in python, cython (c in python for heavy tasks) and uses the bpy library to interact with blender.
 - #### For now, the user can input some parameters like particle amount and density, and a simulation will be automatically generated in blender.
-- #### The physics are very unrealistic right now, but there is still collision detection, sliding and redirection set up (somewhat)
+- #### The physics are very unrealistic right now, but there is still rudimentary collision detection, surface sliding and redirection, and wind force on the particles.
 
 ## Compilation for now
 ```bash
