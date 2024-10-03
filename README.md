@@ -108,7 +108,8 @@ python setup.py bdist_wheel
 - The application should require no textures, models, or datasets beyond installing blender.
 
 ### Aerodynamic Simulation Project Timeline
-![Aerodynamic Simulation Project Timeline](./image.png){ width=50% }
+
+![image](https://github.com/user-attachments/assets/33bf6986-5b90-42ae-9790-2dd16efc1324)
 
 ### Potential Difficulties
 
