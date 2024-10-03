@@ -70,7 +70,7 @@ The user will create their scene in Blender, adjust some parameters in the exten
 
 Distribute the Blender (4.2.1) extension by building it using the Wheels packager (self-contained, cross-platform, easily installed).
 
-#### Compilation
+### Compilation
 
 ```bash
 python setup.py build_ext --inplace
@@ -108,8 +108,7 @@ python setup.py bdist_wheel
 - The application should require no textures, models, or datasets beyond installing blender.
 
 ### Aerodynamic Simulation Project Timeline
-
-![image](https://github.com/user-attachments/assets/33bf6986-5b90-42ae-9790-2dd16efc1324)
+![Aerodynamic Simulation Project Timeline](./image.png){ width=50% }
 
 ### Potential Difficulties
 
