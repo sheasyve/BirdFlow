@@ -1,1 +1,6 @@
-.eggs
+cmain.cpython-311-x86_64-linux-gnu.so
+/build
+/.eggs
+/__pycache__
+cmain.c
+cmain.so
