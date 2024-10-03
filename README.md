@@ -1,4 +1,4 @@
-# Custom Aerodynamic Simulator Physics Engine (Blender-Extension)
+# Custom Aerodynamic Simulator (Blender-Extension)
 
 ### Proof of concept stage 
 <img src="https://github.com/user-attachments/assets/50343c49-76ed-40be-afd1-28e302620c59" alt="0019" width="600"/>
