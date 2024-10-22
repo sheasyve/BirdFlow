@@ -3,7 +3,7 @@ import bmesh  # type: ignore
 from mathutils import Vector  # type: ignore
 from mathutils.bvhtree import BVHTree  # type: ignore
 import numpy as np
-from .cmain import EulerianGrid  # Import the Cython version directly
+from .cmain import EulerianGrid 
 
 COEFFICIENT_OF_FRICTION = 1.0
 EPSILON = 1e-4
@@ -133,9 +133,7 @@ class WindSim(bpy.types.Operator):
         wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            # Use the Cython-optimized wrappers
-            eulerian_grid.collide(bvh_tree, dt)
-            eulerian_grid.simulate(wind, dt)
+            eulerian_grid.simulate(wind, dt, bvh_tree)
             eulerian_grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
@@ -155,7 +153,6 @@ class WindSimPanel(bpy.types.Panel):
         layout.prop(scene, "aerodynamic_simulation_num_frames")
         layout.prop(scene, "aerodynamic_simulation_dt")
         layout.operator("object.wind_sim_operator", text="Run Simulation")
-
 
 def register():
     # Register the simulator class, panel, and panel options in Blender
@@ -189,7 +186,6 @@ def register():
         min=0.001,
         max=1.0
     )
-
 
 def unregister():
     bpy.utils.unregister_class(WindSim)

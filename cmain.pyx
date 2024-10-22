@@ -7,6 +7,8 @@ from mathutils import Vector
 cdef class GridCell:
     cdef public cnp.ndarray position
     cdef public cnp.ndarray velocity
+    cdef public cnp.ndarray pressure
+    cdef public cnp.ndarray density
 
     def __init__(self, double x, double y, double z):
         self.position = np.array([x, y, z], dtype=np.float64)
@@ -43,8 +45,8 @@ cdef class EulerianGrid:
     cpdef list get_cells(self):
         return self.cells
 
-    def simulate(self, cnp.ndarray wind, double dt):
-        cy_simulate(self, wind, dt)
+    def simulate(self, cnp.ndarray wind, double dt, object bvh_tree):
+        cy_simulate(self, wind, dt, bvh_tree)
 
     def collide(self, object bvh_tree, double dt):
         cy_collide(self, bvh_tree, dt)
@@ -63,7 +65,9 @@ cpdef void cy_apply_forces(EulerianGrid grid, cnp.ndarray wind, double dt):
     for x in range(grid.grid_size[0]):
         for y in range(grid.grid_size[1]):
             for z in range(grid.grid_size[2]):
-                grid.get_cell(x, y, z).apply_force(wind_force)
+                cell = grid.get_cell(x, y, z)
+                cell.apply_force(wind_force)  
+                cell.position += cell.velocity * dt 
 
 cpdef void redirect_grid(
     object eulerian_grid,
@@ -71,8 +75,7 @@ cpdef void redirect_grid(
     cnp.ndarray[cnp.float64_t, ndim=1] normal,
     int x,
     int y,
-    int z
-):
+    int z):
     #Collision redirect
     cdef cnp.ndarray[cnp.float64_t, ndim=1] velocity, reflected_velocity
     cdef double dot_product
@@ -105,22 +108,17 @@ cpdef void cy_collide(EulerianGrid grid, object bvh_tree, double dt):
                 if location is not None and distance <= velocity_norm * dt:
                     redirect_grid(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
 
-cpdef void cy_simulate(EulerianGrid grid, cnp.ndarray wind, double dt):
-    #Simulation main
+cpdef void cy_simulate(EulerianGrid grid, cnp.ndarray wind, double dt, object bvh_tree):
+    # Step 1: Apply external forces like wind
     cy_apply_forces(grid, wind, dt)
-    cdef GridCell cell
-    for cell in grid.iterate_cells():
-        cell.position += cell.velocity * dt
-    '''More realistic workflow
-    # Step 1: Apply wind
-    cy_apply_forces(grid, wind, dt)
-    # Step 2: Diffuse (Viscosity)
-    cy_diffuse(grid, dt, viscosity=0.01)
-    # Step 3: Collision Handling
-    cy_collide(grid, bvh_tree, dt)  # Detect and handle collisions
-    # Step 4: Advect fluid properties across the grid
-    cy_advect(grid, dt)
+    # Step 2: Diffuse (apply viscosity)
+    #cy_diffuse(grid, dt, viscosity=0.01)
+    # Step 3: Advect fluid properties across the grid
+    #cy_advect(grid, dt)
+    # Step 4: Detect and handle collisions
+    cy_collide(grid, bvh_tree, dt)
     # Step 5: Pressure solve to ensure incompressibility
-    cy_solve_pressure(grid, dt, iterations=20)
-    # Step 6: Project velocity field
-    cy_project(grid) '''
+    #cy_solve_pressure(grid, dt, iterations=20)
+    # Step 6: Project the velocity field to be divergence-free
+    #cy_project(grid)
+
