@@ -150,6 +150,14 @@ class WindSim(bpy.types.Operator):
             for i, particle in enumerate(particle_objects):#Update the particle locations
                 particle.location = positions[i]
                 particle.keyframe_insert(data_path="location", frame=frame)
+    
+    def run_simulation2(self, eulerian_grid, bvh_tree, num_frames, dt, particle_objects):
+        wind = np.array(WIND_DIRECTION, dtype=np.float64)
+        for frame in range(1, num_frames + 1):
+            bpy.context.scene.frame_set(frame)
+            eulerian_grid.collide(bvh_tree, dt)
+            eulerian_grid.simulate(wind, dt)
+            eulerian_grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
     #Create the panel in blender for the simulator

@@ -73,7 +73,7 @@ Distribute the Blender (4.2.1) extension by building it using the Wheels package
 ### Compilation
 
 ```bash
-python setup.py build_ext --inplace
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
 python setup.py bdist_wheel
 ```
 
