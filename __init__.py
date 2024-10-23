@@ -3,14 +3,15 @@ import bmesh  # type: ignore
 from mathutils import Vector  # type: ignore
 from mathutils.bvhtree import BVHTree  # type: ignore
 import numpy as np
-from .cmain import EulerianGrid 
+
+from .cmain import MACGrid
 
 COEFFICIENT_OF_FRICTION = 1.0
 EPSILON = 1e-4
 WIND_DIRECTION = [1.0, 0.0, 0.0]
 PARTICLE_COLOR = [1.0, 1.0, 1.0, 0.5]
-GRID_SIZE = (20, 20, 20) 
-CELL_SIZE = 1.0         
+GRID_SIZE = (5, 5, 5) 
+CELL_SIZE = 0.5         
 
 bl_info = {
     "name": "Aerodynamic Simulator",
@@ -78,7 +79,7 @@ class WindSim(bpy.types.Operator):
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
                 self.run_simulation(
-                    EulerianGrid(GRID_SIZE, CELL_SIZE), 
+                    MACGrid(GRID_SIZE, CELL_SIZE), 
                     self.get_bvh_tree(obj), num_frames, 
                     dt, self.make_particles(self.create_particle_collection(), 
                     particle_positions))
@@ -129,12 +130,12 @@ class WindSim(bpy.types.Operator):
             particle_objects.append(particle)
         return particle_objects
 
-    def run_simulation(self, eulerian_grid, bvh_tree, num_frames, dt, particle_objects):
+    def run_simulation(self, grid, bvh_tree, num_frames, dt, particle_objects):
         wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            eulerian_grid.simulate(wind, dt, bvh_tree)
-            eulerian_grid.update_particle_positions(particle_objects, frame)
+            grid.simulate(wind, dt, bvh_tree)
+            grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
     # Create the panel in Blender for the simulator
