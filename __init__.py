@@ -3,8 +3,10 @@ import bmesh  # type: ignore
 from mathutils import Vector  # type: ignore
 from mathutils.bvhtree import BVHTree  # type: ignore
 import numpy as np
+# cmain_addon/__init__.py
+from .grid import MACGrid
 
-from .cmain import MACGrid
+from .cmain import *
 
 COEFFICIENT_OF_FRICTION = 1.0
 EPSILON = 1e-4
@@ -134,7 +136,7 @@ class WindSim(bpy.types.Operator):
         wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            grid.simulate(wind, dt, bvh_tree)
+            cy_simulate(grid, wind, dt, bvh_tree)
             grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
