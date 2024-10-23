@@ -162,7 +162,7 @@ def register():
     bpy.types.Scene.aerodynamic_simulation_num_particles = bpy.props.IntProperty(
         name="Number of Particles",
         description="Total number of wind particles",
-        default=500,
+        default=125,
         min=1,
         max=10000
     )
