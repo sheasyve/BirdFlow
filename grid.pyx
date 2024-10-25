@@ -35,7 +35,7 @@ cdef class MACGrid:
         if 0 <= x < nx + 1:
             self.u[x, y, z] = vel[0]
         if 0 <= x - 1 < nx + 1:
-            self.u[x - 1, y, z] = vel[0]
+            self.u[x - 1, y, z] = vel[0]    
         if 0 <= y < ny + 1:
             self.v[x, y, z] = vel[1]
         if 0 <= y - 1 < ny + 1:
@@ -51,10 +51,3 @@ cdef class MACGrid:
             if i < positions.shape[0]:
                 particle.location = Vector(positions[i])
                 particle.keyframe_insert(data_path="location", frame=frame)
-
-'''For a grid of nx, ny, nz cells, we store the pressure in a
-nx, ny, nz array, the x component of the velocity in a nx+1, ny, nz
-array, the y component of the velocity in a nx, ny + 1, nz array, and
-the z component of the velocity in a nx, ny, nz + 1 array.
-(Fluid Simulation For Computer Graphics: A Tutorial in Grid Based and Particle
-Based Methods)'''

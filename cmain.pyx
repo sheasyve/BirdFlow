@@ -194,7 +194,7 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
                 origin = Vector(pos - vel * dt)
                 direction = Vector(vel / np.linalg.norm(vel))
                 location, normal, _, distance = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
-                if location is not None and distance <= np.linalg.norm(vel) * dt:
+                if location is not None and distance <= np.linalg.norm(vel) * dt: #Collision
                     new_pos = pos + (np.array(normal) * (np.linalg.norm(vel) * dt - distance))
                     grid.position[x, y, z, :] = new_pos
                     redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)

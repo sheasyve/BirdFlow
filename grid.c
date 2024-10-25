@@ -7487,7 +7487,6 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
  *             if i < positions.shape[0]:
  *                 particle.location = Vector(positions[i])             # <<<<<<<<<<<<<<
  *                 particle.keyframe_insert(data_path="location", frame=frame)
- * 
  */
       __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_Vector); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -7523,8 +7522,6 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
  *             if i < positions.shape[0]:
  *                 particle.location = Vector(positions[i])
  *                 particle.keyframe_insert(data_path="location", frame=frame)             # <<<<<<<<<<<<<<
- * 
- * '''For a grid of nx, ny, nz cells, we store the pressure in a
  */
       __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_particle, __pyx_n_s_keyframe_insert); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
