@@ -96,7 +96,7 @@ class WindSim(bpy.types.Operator):
             return {'CANCELLED'}
 
     def create_mesh(self):
-        # Create the particle mesh where the particles will be displayed
+        # Create particle mesh where particles reside
         mesh = bpy.data.meshes.get("ParticleMesh")
         if mesh is None:
             mesh = bpy.data.meshes.new("ParticleMesh")
@@ -110,11 +110,10 @@ class WindSim(bpy.types.Operator):
                 material.diffuse_color = PARTICLE_COLOR
             if len(mesh.materials) == 0:
                 mesh.materials.append(material)
-
         return mesh
 
     def create_particle_collection(self):
-        # Create or retrieve the particle collection in Blender
+        # Create particle collection in Blender
         pc = bpy.data.collections.get("WindParticles")
         if not pc:
             pc = bpy.data.collections.new("WindParticles")
@@ -122,7 +121,6 @@ class WindSim(bpy.types.Operator):
         return pc
 
     def make_particles(self, particle_collection, positions):
-        # Initialize the particles
         mesh = self.create_mesh()
         particle_objects = []
         for i, pos in enumerate(positions):  # One particle per position
@@ -136,11 +134,11 @@ class WindSim(bpy.types.Operator):
         wind = np.array(WIND_DIRECTION, dtype=np.float64)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            cy_simulate(grid, wind, dt, bvh_tree)
+            cy_simulate(grid, wind, dt, bvh_tree) # type: ignore
             grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
-    # Create the panel in Blender for the simulator
+    # The Extension side panel in blender
     bl_label = "Aerodynamic Simulator"
     bl_idname = "aerodynamic_simulator_panel"
     bl_space_type = 'VIEW_3D'

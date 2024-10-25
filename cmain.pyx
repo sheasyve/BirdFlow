@@ -195,11 +195,8 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
                 direction = Vector(vel / np.linalg.norm(vel))
                 location, normal, _, distance = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
                 if location is not None and distance <= np.linalg.norm(vel) * dt:
-                    penetration_depth = np.linalg.norm(vel) * dt - distance
-                    correction = np.array(normal) * penetration_depth
-                    corrected_pos = pos + correction
-                    x_idx, y_idx, z_idx = x, y, z  
-                    grid.position[x_idx, y_idx, z_idx, :] = corrected_pos
+                    new_pos = pos + (np.array(normal) * (np.linalg.norm(vel) * dt - distance))
+                    grid.position[x, y, z, :] = new_pos
                     redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
 
 # -- Collision Advection --

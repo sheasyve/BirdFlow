@@ -16,7 +16,7 @@ cdef class MACGrid:
     cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
     cpdef void update_particle_positions(self, object particle_objects, int frame)
 
-'''Therefore, for a grid of nx, ny, nz cells, we store the pressure in a
+'''For a grid of nx, ny, nz cells, we store the pressure in a
 nx, ny, nz array, the x component of the velocity in a nx+1, ny, nz
 array, the y component of the velocity in a nx, ny + 1, nz array, and
 the z component of the velocity in a nx, ny, nz + 1 array.
