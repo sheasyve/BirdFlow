@@ -6270,7 +6270,7 @@ static int __pyx_pf_4grid_7MACGrid___init__(struct __pyx_obj_4grid_MACGrid *__py
  *         for x in range(nx):
  *             for y in range(ny):             # <<<<<<<<<<<<<<
  *                 for z in range(nz):
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  */
     __pyx_t_9 = __pyx_v_ny;
     __pyx_t_10 = __pyx_t_9;
@@ -6281,7 +6281,7 @@ static int __pyx_pf_4grid_7MACGrid___init__(struct __pyx_obj_4grid_MACGrid *__py
  *         for x in range(nx):
  *             for y in range(ny):
  *                 for z in range(nz):             # <<<<<<<<<<<<<<
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  * 
  */
       __pyx_t_12 = __pyx_v_nz;
@@ -6292,7 +6292,7 @@ static int __pyx_pf_4grid_7MACGrid___init__(struct __pyx_obj_4grid_MACGrid *__py
         /* "grid.pyx":26
  *             for y in range(ny):
  *                 for z in range(nz):
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]             # <<<<<<<<<<<<<<
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset             # <<<<<<<<<<<<<<
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
  */
@@ -6365,7 +6365,7 @@ static int __pyx_pf_4grid_7MACGrid___init__(struct __pyx_obj_4grid_MACGrid *__py
 }
 
 /* "grid.pyx":28
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):             # <<<<<<<<<<<<<<
  *         return self.position[x, y, z, :]
@@ -6463,7 +6463,7 @@ static PyArrayObject *__pyx_f_4grid_7MACGrid_get_cell_position(struct __pyx_obj_
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
  *         return self.position[x, y, z, :]             # <<<<<<<<<<<<<<
  * 
- * 
+ *     cpdef void update_particle_positions(self, object particle_objects, int frame):
  */
   __Pyx_XDECREF((PyObject *)__pyx_r);
   __pyx_t_1 = __Pyx_PyInt_From_npy_intp(__pyx_v_x); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 29, __pyx_L1_error)
@@ -6495,7 +6495,7 @@ static PyArrayObject *__pyx_f_4grid_7MACGrid_get_cell_position(struct __pyx_obj_
   goto __pyx_L0;
 
   /* "grid.pyx":28
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):             # <<<<<<<<<<<<<<
  *         return self.position[x, y, z, :]
@@ -6671,8 +6671,8 @@ static PyObject *__pyx_pf_4grid_7MACGrid_2get_cell_position(struct __pyx_obj_4gr
   return __pyx_r;
 }
 
-/* "grid.pyx":32
- * 
+/* "grid.pyx":31
+ *         return self.position[x, y, z, :]
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):             # <<<<<<<<<<<<<<
  *         positions = self.position.reshape(-1, 3)
@@ -6714,10 +6714,10 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_typedict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_update_particle_positions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_update_particle_positions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 31, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       if (!__Pyx_IsSameCFunction(__pyx_t_1, (void*) __pyx_pw_4grid_7MACGrid_5update_particle_positions)) {
-        __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_frame); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 32, __pyx_L1_error)
+        __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_frame); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_INCREF(__pyx_t_1);
         __pyx_t_4 = __pyx_t_1; __pyx_t_5 = NULL;
@@ -6739,7 +6739,7 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
           __pyx_t_2 = __Pyx_PyObject_FastCall(__pyx_t_4, __pyx_callargs+1-__pyx_t_6, 2+__pyx_t_6);
           __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 32, __pyx_L1_error)
+          if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 31, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
           __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
         }
@@ -6760,22 +6760,22 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
     #endif
   }
 
-  /* "grid.pyx":33
+  /* "grid.pyx":32
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):
  *         positions = self.position.reshape(-1, 3)             # <<<<<<<<<<<<<<
  *         for i, particle in enumerate(particle_objects):
  *             if i < positions.shape[0]:
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self->position), __pyx_n_s_reshape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self->position), __pyx_n_s_reshape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 32, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_positions = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "grid.pyx":34
+  /* "grid.pyx":33
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):             # <<<<<<<<<<<<<<
@@ -6789,9 +6789,9 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
     __pyx_t_7 = 0;
     __pyx_t_8 = NULL;
   } else {
-    __pyx_t_7 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_particle_objects); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 34, __pyx_L1_error)
+    __pyx_t_7 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_particle_objects); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 33, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_8 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 34, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_GetIterNextFunc(__pyx_t_1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 33, __pyx_L1_error)
   }
   for (;;) {
     if (likely(!__pyx_t_8)) {
@@ -6799,28 +6799,28 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
         {
           Py_ssize_t __pyx_temp = __Pyx_PyList_GET_SIZE(__pyx_t_1);
           #if !CYTHON_ASSUME_SAFE_MACROS
-          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 34, __pyx_L1_error)
+          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 33, __pyx_L1_error)
           #endif
           if (__pyx_t_7 >= __pyx_temp) break;
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_4 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_7); __Pyx_INCREF(__pyx_t_4); __pyx_t_7++; if (unlikely((0 < 0))) __PYX_ERR(0, 34, __pyx_L1_error)
+        __pyx_t_4 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_7); __Pyx_INCREF(__pyx_t_4); __pyx_t_7++; if (unlikely((0 < 0))) __PYX_ERR(0, 33, __pyx_L1_error)
         #else
-        __pyx_t_4 = __Pyx_PySequence_ITEM(__pyx_t_1, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PySequence_ITEM(__pyx_t_1, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 33, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         #endif
       } else {
         {
           Py_ssize_t __pyx_temp = __Pyx_PyTuple_GET_SIZE(__pyx_t_1);
           #if !CYTHON_ASSUME_SAFE_MACROS
-          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 34, __pyx_L1_error)
+          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 33, __pyx_L1_error)
           #endif
           if (__pyx_t_7 >= __pyx_temp) break;
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_4 = PyTuple_GET_ITEM(__pyx_t_1, __pyx_t_7); __Pyx_INCREF(__pyx_t_4); __pyx_t_7++; if (unlikely((0 < 0))) __PYX_ERR(0, 34, __pyx_L1_error)
+        __pyx_t_4 = PyTuple_GET_ITEM(__pyx_t_1, __pyx_t_7); __Pyx_INCREF(__pyx_t_4); __pyx_t_7++; if (unlikely((0 < 0))) __PYX_ERR(0, 33, __pyx_L1_error)
         #else
-        __pyx_t_4 = __Pyx_PySequence_ITEM(__pyx_t_1, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PySequence_ITEM(__pyx_t_1, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 33, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         #endif
       }
@@ -6830,7 +6830,7 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 34, __pyx_L1_error)
+          else __PYX_ERR(0, 33, __pyx_L1_error)
         }
         break;
       }
@@ -6840,39 +6840,39 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
     __pyx_t_4 = 0;
     __Pyx_INCREF(__pyx_t_2);
     __Pyx_XDECREF_SET(__pyx_v_i, __pyx_t_2);
-    __pyx_t_4 = __Pyx_PyInt_AddObjC(__pyx_t_2, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_AddObjC(__pyx_t_2, __pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 33, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_2);
     __pyx_t_2 = __pyx_t_4;
     __pyx_t_4 = 0;
 
-    /* "grid.pyx":35
+    /* "grid.pyx":34
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):
  *             if i < positions.shape[0]:             # <<<<<<<<<<<<<<
  *                 particle.location = Vector(positions[i])
  *                 particle.keyframe_insert(data_path="location", frame=frame)
  */
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_positions, __pyx_n_s_shape); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 35, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_positions, __pyx_n_s_shape); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_4 = PyObject_RichCompare(__pyx_v_i, __pyx_t_3, Py_LT); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 35, __pyx_L1_error)
+    __pyx_t_4 = PyObject_RichCompare(__pyx_v_i, __pyx_t_3, Py_LT); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_9 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 35, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 34, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     if (__pyx_t_9) {
 
-      /* "grid.pyx":36
+      /* "grid.pyx":35
  *         for i, particle in enumerate(particle_objects):
  *             if i < positions.shape[0]:
  *                 particle.location = Vector(positions[i])             # <<<<<<<<<<<<<<
  *                 particle.keyframe_insert(data_path="location", frame=frame)
  */
-      __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_Vector); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
+      __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_Vector); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_positions, __pyx_v_i); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 36, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_positions, __pyx_v_i); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 35, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __pyx_t_10 = NULL;
       __pyx_t_6 = 0;
@@ -6893,34 +6893,34 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
         __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_3, __pyx_callargs+1-__pyx_t_6, 1+__pyx_t_6);
         __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 36, __pyx_L1_error)
+        if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 35, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       }
-      if (__Pyx_PyObject_SetAttrStr(__pyx_v_particle, __pyx_n_s_location, __pyx_t_4) < 0) __PYX_ERR(0, 36, __pyx_L1_error)
+      if (__Pyx_PyObject_SetAttrStr(__pyx_v_particle, __pyx_n_s_location, __pyx_t_4) < 0) __PYX_ERR(0, 35, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-      /* "grid.pyx":37
+      /* "grid.pyx":36
  *             if i < positions.shape[0]:
  *                 particle.location = Vector(positions[i])
  *                 particle.keyframe_insert(data_path="location", frame=frame)             # <<<<<<<<<<<<<<
  */
-      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_particle, __pyx_n_s_keyframe_insert); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_particle, __pyx_n_s_keyframe_insert); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 36, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_data_path, __pyx_n_u_location) < 0) __PYX_ERR(0, 37, __pyx_L1_error)
-      __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_frame); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 37, __pyx_L1_error)
+      if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_data_path, __pyx_n_u_location) < 0) __PYX_ERR(0, 36, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_frame); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 36, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_frame, __pyx_t_5) < 0) __PYX_ERR(0, 37, __pyx_L1_error)
+      if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_frame, __pyx_t_5) < 0) __PYX_ERR(0, 36, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 37, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_empty_tuple, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 36, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-      /* "grid.pyx":35
+      /* "grid.pyx":34
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):
  *             if i < positions.shape[0]:             # <<<<<<<<<<<<<<
@@ -6929,7 +6929,7 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
  */
     }
 
-    /* "grid.pyx":34
+    /* "grid.pyx":33
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):             # <<<<<<<<<<<<<<
@@ -6940,8 +6940,8 @@ static void __pyx_f_4grid_7MACGrid_update_particle_positions(struct __pyx_obj_4g
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "grid.pyx":32
- * 
+  /* "grid.pyx":31
+ *         return self.position[x, y, z, :]
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):             # <<<<<<<<<<<<<<
  *         positions = self.position.reshape(-1, 3)
@@ -7021,7 +7021,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 31, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -7029,14 +7029,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 31, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("update_particle_positions", 1, 2, 2, 1); __PYX_ERR(0, 32, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_particle_positions", 1, 2, 2, 1); __PYX_ERR(0, 31, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "update_particle_positions") < 0)) __PYX_ERR(0, 32, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "update_particle_positions") < 0)) __PYX_ERR(0, 31, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -7045,11 +7045,11 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
     __pyx_v_particle_objects = values[0];
-    __pyx_v_frame = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_frame == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L3_error)
+    __pyx_v_frame = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_frame == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 31, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("update_particle_positions", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 32, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("update_particle_positions", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 31, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -7085,8 +7085,8 @@ static PyObject *__pyx_pf_4grid_7MACGrid_4update_particle_positions(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("update_particle_positions", 1);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_f_4grid_7MACGrid_update_particle_positions(__pyx_v_self, __pyx_v_particle_objects, __pyx_v_frame, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L1_error)
-  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_f_4grid_7MACGrid_update_particle_positions(__pyx_v_self, __pyx_v_particle_objects, __pyx_v_frame, 1); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 31, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -8396,7 +8396,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 23, __pyx_L1_error)
-  __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(0, 33, __pyx_L1_error)
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(1, 83, __pyx_L1_error)
   __pyx_builtin_OverflowError = __Pyx_GetBuiltinName(__pyx_n_s_OverflowError); if (!__pyx_builtin_OverflowError) __PYX_ERR(1, 83, __pyx_L1_error)
   __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(1, 96, __pyx_L1_error)
@@ -8436,7 +8436,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "grid.pyx":26
  *             for y in range(ny):
  *                 for z in range(nz):
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]             # <<<<<<<<<<<<<<
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset             # <<<<<<<<<<<<<<
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
  */
@@ -8444,14 +8444,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__3);
   __Pyx_GIVEREF(__pyx_slice__3);
 
-  /* "grid.pyx":33
+  /* "grid.pyx":32
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):
  *         positions = self.position.reshape(-1, 3)             # <<<<<<<<<<<<<<
  *         for i, particle in enumerate(particle_objects):
  *             if i < positions.shape[0]:
  */
-  __pyx_tuple__4 = PyTuple_Pack(2, __pyx_int_neg_1, __pyx_int_3); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_tuple__4 = PyTuple_Pack(2, __pyx_int_neg_1, __pyx_int_3); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 32, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
 
@@ -8467,7 +8467,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__5);
 
   /* "grid.pyx":28
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):             # <<<<<<<<<<<<<<
  *         return self.position[x, y, z, :]
@@ -8478,17 +8478,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__8);
   __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_grid_pyx, __pyx_n_s_get_cell_position, 28, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 28, __pyx_L1_error)
 
-  /* "grid.pyx":32
- * 
+  /* "grid.pyx":31
+ *         return self.position[x, y, z, :]
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):             # <<<<<<<<<<<<<<
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):
  */
-  __pyx_tuple__10 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_particle_objects, __pyx_n_s_frame); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_tuple__10 = PyTuple_Pack(3, __pyx_n_s_self, __pyx_n_s_particle_objects, __pyx_n_s_frame); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__10);
   __Pyx_GIVEREF(__pyx_tuple__10);
-  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_grid_pyx, __pyx_n_s_update_particle_positions, 32, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_grid_pyx, __pyx_n_s_update_particle_positions, 31, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 31, __pyx_L1_error)
 
   /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
@@ -9020,7 +9020,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
   /* "grid.pyx":28
- *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+ *                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
  * 
  *     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):             # <<<<<<<<<<<<<<
  *         return self.position[x, y, z, :]
@@ -9032,16 +9032,16 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   PyType_Modified(__pyx_ptype_4grid_MACGrid);
 
-  /* "grid.pyx":32
- * 
+  /* "grid.pyx":31
+ *         return self.position[x, y, z, :]
  * 
  *     cpdef void update_particle_positions(self, object particle_objects, int frame):             # <<<<<<<<<<<<<<
  *         positions = self.position.reshape(-1, 3)
  *         for i, particle in enumerate(particle_objects):
  */
-  __pyx_t_3 = __Pyx_CyFunction_New(&__pyx_mdef_4grid_7MACGrid_5update_particle_positions, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_MACGrid_update_particle_position, NULL, __pyx_n_s_grid, __pyx_d, ((PyObject *)__pyx_codeobj__11)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_CyFunction_New(&__pyx_mdef_4grid_7MACGrid_5update_particle_positions, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_MACGrid_update_particle_position, NULL, __pyx_n_s_grid, __pyx_d, ((PyObject *)__pyx_codeobj__11)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_4grid_MACGrid, __pyx_n_s_update_particle_positions, __pyx_t_3) < 0) __PYX_ERR(0, 32, __pyx_L1_error)
+  if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_4grid_MACGrid, __pyx_n_s_update_particle_positions, __pyx_t_3) < 0) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   PyType_Modified(__pyx_ptype_4grid_MACGrid);
 

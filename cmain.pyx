@@ -9,8 +9,41 @@ cdef enum Component:
     U = 0
     V = 1
     W = 2
+    
+cpdef double interp_dir(double u1, double u2, double fdir):
+    return (u1 * (1 - fdir) + u2 * fdir) 
 
-cpdef cnp.ndarray interpolate_velocity_at_position(MACGrid grid, cnp.ndarray pos):
+cpdef double interp_component_u(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_intp j, cnp.npy_intp k, double fx, double fy, double fz):
+    '''Find velocity of a component (u, v, w)
+    Grid cell index: (i, j, k) , Offset from grid cell: (fx, fy, fz)'''
+    cdef double u000, u100, u010, u110, u001, u101, u011, u111
+    #Grid dims
+    cdef cnp.npy_intp n0 = face_u.shape[0]
+    cdef cnp.npy_intp n1 = face_u.shape[1]
+    cdef cnp.npy_intp n2 = face_u.shape[2]
+    #Velocity of each face
+    u000 = face_u[i, j, k]
+    u100 = face_u[min(i+1, n0-1), j, k]#i+1
+    u010 = face_u[i, min(j+1, n1-1), k]#j+1
+    u110 = face_u[min(i+1, n0-1), min(j+1, n1-1), k]#i+1,j+1
+    u001 = face_u[i, j, min(k+1, n2-1)]#k+1
+    u101 = face_u[min(i+1, n0-1), j, min(k+1, n2-1)]#i+1,k+1
+    u011 = face_u[i, min(j+1, n1-1), min(k+1, n2-1)]#j+1,k+1
+    u111 = face_u[min(i+1, n0-1), min(j+1, n1-1), min(k+1, n2-1)]
+    #Interpolate x
+    cdef double c00 = interp_dir(u000, u100, fx)
+    cdef double c01 = interp_dir(u001, u101, fx)
+    cdef double c10 = interp_dir(u010, u110, fx)
+    cdef double c11 = interp_dir(u011, u111, fx)
+    #Interpolate y
+    cdef double c0 = interp_dir(c00, c10, fy)
+    cdef double c1 = interp_dir(c01, c11, fy)
+    #Interpolate z
+    cdef double c = interp_dir(c0, c1, fz)
+    return c
+
+cpdef cnp.ndarray interp_u_at_p(MACGrid grid, cnp.ndarray pos):
+    #Get the whole velocity vector from a position
     cdef double cell_size = grid.cell_size
     cdef double x_pos = pos[0] / cell_size
     cdef double y_pos = pos[1] / cell_size
@@ -25,42 +58,20 @@ cpdef cnp.ndarray interpolate_velocity_at_position(MACGrid grid, cnp.ndarray pos
     cdef double fy = min(max(y_pos - j, 0.0), 1.0)
     cdef double fz = min(max(z_pos - k, 0.0), 1.0)
     cdef cnp.ndarray[double, ndim=1] vel = np.zeros(3, dtype=np.float64)
-    vel[0] = interpolate_face_velocity(grid.u, i, j, k, fx, fy, fz)  # U-component
-    vel[1] = interpolate_face_velocity(grid.v, i, j, k, fx, fy, fz)  # V-component
-    vel[2] = interpolate_face_velocity(grid.w, i, j, k, fx, fy, fz)  # W-component
+    vel[0] = interp_component_u(grid.u, i, j, k, fx, fy, fz)  # U-component
+    vel[1] = interp_component_u(grid.v, i, j, k, fx, fy, fz)  # V-component
+    vel[2] = interp_component_u(grid.w, i, j, k, fx, fy, fz)  # W-component
     return vel
 
-cpdef double interpolate_face_velocity(cnp.ndarray face_vel, cnp.npy_intp i, cnp.npy_intp j, cnp.npy_intp k, double fx, double fy, double fz):
-    cdef double v000, v100, v010, v110, v001, v101, v011, v111
-    cdef cnp.npy_intp shape0 = face_vel.shape[0]
-    cdef cnp.npy_intp shape1 = face_vel.shape[1]
-    cdef cnp.npy_intp shape2 = face_vel.shape[2]
-    v000 = face_vel[i, j, k]
-    v100 = face_vel[min(i+1, shape0-1), j, k]
-    v010 = face_vel[i, min(j+1, shape1-1), k]
-    v110 = face_vel[min(i+1, shape0-1), min(j+1, shape1-1), k]
-    v001 = face_vel[i, j, min(k+1, shape2-1)]
-    v101 = face_vel[min(i+1, shape0-1), j, min(k+1, shape2-1)]
-    v011 = face_vel[i, min(j+1, shape1-1), min(k+1, shape2-1)]
-    v111 = face_vel[min(i+1, shape0-1), min(j+1, shape1-1), min(k+1, shape2-1)]
-    cdef double c00 = v000 * (1 - fx) + v100 * fx
-    cdef double c01 = v001 * (1 - fx) + v101 * fx
-    cdef double c10 = v010 * (1 - fx) + v110 * fx
-    cdef double c11 = v011 * (1 - fx) + v111 * fx
-    cdef double c0 = c00 * (1 - fy) + c10 * fy
-    cdef double c1 = c01 * (1 - fy) + c11 * fy
-    cdef double c = c0 * (1 - fz) + c1 * fz
-    return c
-
-cpdef double interpolate_face_velocity_at_position(cnp.ndarray face_vel, cnp.ndarray pos, Component component, MACGrid grid):
-    cdef double x, y, z
+cpdef double interp_component_u_at_p(cnp.ndarray face_vel, cnp.ndarray pos, Component component, MACGrid grid):
+    # Get a single component of the velocity field (u, v, w) at this position, using the face velocities
     cdef cnp.npy_intp i, j, k
     cdef double fx, fy, fz
-    cdef double result
     cdef double cell_size = grid.cell_size
-    x = pos[0] / cell_size
-    y = pos[1] / cell_size
-    z = pos[2] / cell_size
+    cdef double x = pos[0] / cell_size
+    cdef double y = pos[1] / cell_size
+    cdef double z = pos[2] / cell_size
+    # Determine grid indices and fractional offsets based on the component
     if component == Component.U:
         i = <cnp.npy_intp>x
         j = <cnp.npy_intp>(y - 0.5)
@@ -84,30 +95,14 @@ cpdef double interpolate_face_velocity_at_position(cnp.ndarray face_vel, cnp.nda
         fz = z - k
     else:
         raise ValueError("Invalid component: must be Component.U, Component.V, or Component.W")
+    # Clamp indices and offsets
     i = min(max(i, 0), face_vel.shape[0] - 2)
     j = min(max(j, 0), face_vel.shape[1] - 2)
     k = min(max(k, 0), face_vel.shape[2] - 2)
     fx = min(max(fx, 0.0), 1.0)
     fy = min(max(fy, 0.0), 1.0)
     fz = min(max(fz, 0.0), 1.0)
-    # Perform trilinear interpolation
-    cdef double v000, v100, v010, v110, v001, v101, v011, v111
-    v000 = face_vel[i, j, k]
-    v100 = face_vel[i+1, j, k]
-    v010 = face_vel[i, j+1, k]
-    v110 = face_vel[i+1, j+1, k]
-    v001 = face_vel[i, j, k+1]
-    v101 = face_vel[i+1, j, k+1]
-    v011 = face_vel[i, j+1, k+1]
-    v111 = face_vel[i+1, j+1, k+1]
-    cdef double c00 = v000 * (1 - fx) + v100 * fx
-    cdef double c01 = v001 * (1 - fx) + v101 * fx
-    cdef double c10 = v010 * (1 - fx) + v110 * fx
-    cdef double c11 = v011 * (1 - fx) + v111 * fx
-    cdef double c0 = c00 * (1 - fy) + c10 * fy
-    cdef double c1 = c01 * (1 - fy) + c11 * fy
-    result = c0 * (1 - fz) + c1 * fz
-    return result
+    return interp_component_u(face_vel, i, j, k, fx, fy, fz)
 
 cpdef void set_face_velocities(MACGrid grid, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel):
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -210,36 +205,36 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 pos[0] = x * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = (z + 0.5) * cell_size
-                vel[:] = interpolate_velocity_at_position(grid, pos)
+                vel[:] = interp_u_at_p(grid, pos)
                 prev_pos[:] = pos - vel * dt
                 prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
                 prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
                 prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_u[x, y, z] = interpolate_face_velocity_at_position(grid.u, prev_pos, Component.U, grid)
+                new_u[x, y, z] = interp_component_u_at_p(grid.u, prev_pos, Component.U, grid)
     for x in range(nx):
         for y in range(ny+1):
             for z in range(nz):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = y * cell_size
                 pos[2] = (z + 0.5) * cell_size
-                vel[:] = interpolate_velocity_at_position(grid, pos)
+                vel[:] = interp_u_at_p(grid, pos)
                 prev_pos[:] = pos - vel * dt
                 prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
                 prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
                 prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_v[x, y, z] = interpolate_face_velocity_at_position(grid.v, prev_pos, Component.V, grid)
+                new_v[x, y, z] = interp_component_u_at_p(grid.v, prev_pos, Component.V, grid)
     for x in range(nx):
         for y in range(ny):
             for z in range(nz+1):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = z * cell_size
-                vel[:] = interpolate_velocity_at_position(grid, pos)
+                vel[:] = interp_u_at_p(grid, pos)
                 prev_pos[:] = pos - vel * dt
                 prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
                 prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
                 prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_w[x, y, z] = interpolate_face_velocity_at_position(grid.w, prev_pos, Component.W, grid)
+                new_w[x, y, z] = interp_component_u_at_p(grid.w, prev_pos, Component.W, grid)
     grid.u[:, :, :] = new_u
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
@@ -257,7 +252,7 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
         for y in range(ny):
             for z in range(nz):
                 pos[:] = grid.get_cell_position(x, y, z)
-                vel[:] = interpolate_velocity_at_position(grid, pos)
+                vel[:] = interp_u_at_p(grid, pos)
                 if np.linalg.norm(vel) == 0:
                     continue
                 origin = Vector(pos - vel * dt)
@@ -272,7 +267,7 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
                     redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
 
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
-    cdef cnp.ndarray vel = interpolate_velocity_at_position(grid, location)
+    cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef double dot_product
     cdef cnp.ndarray reflected_velocity
     cdef double damping_factor = 0.8
@@ -381,7 +376,7 @@ cpdef void cy_advect(MACGrid grid, double dt):
         for y in range(ny):
             for z in range(nz):
                 pos[:] = grid.get_cell_position(x, y, z)
-                vel[:] = interpolate_velocity_at_position(grid, pos)
+                vel[:] = interp_u_at_p(grid, pos)
                 prev_pos[:] = pos - vel * dt
                 prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
                 prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)

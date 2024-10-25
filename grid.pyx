@@ -23,7 +23,7 @@ cdef class MACGrid:
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
-                    self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]
+                    self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]#Mac grid offset
 
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
         return self.position[x, y, z, :]
