@@ -9,12 +9,69 @@ cdef enum Component:
     U = 0
     V = 1
     W = 2
-    
+    S = -1
+
+# -- Interpolation --
+
+cdef void get_index_and_offset(double[:] pos, double cell_size, cnp.npy_intp *field_shape,
+                               cnp.npy_intp* i, cnp.npy_intp* j, cnp.npy_intp* k,
+                               double* fx, double* fy, double* fz, Component component):
+    #Helper function to get indexes and offsets to interpolate from
+    cdef double x = pos[0] / cell_size
+    cdef double y = pos[1] / cell_size
+    cdef double z = pos[2] / cell_size
+    #Try Vector Field
+    if component == Component.U:
+        i[0] = <cnp.npy_intp>x
+        j[0] = <cnp.npy_intp>(y - 0.5)
+        k[0] = <cnp.npy_intp>(z - 0.5)
+        fx[0] = x - i[0]
+        fy[0] = (y - 0.5) - j[0]
+        fz[0] = (z - 0.5) - k[0]
+    elif component == Component.V:
+        i[0] = <cnp.npy_intp>(x - 0.5)
+        j[0] = <cnp.npy_intp>y
+        k[0] = <cnp.npy_intp>(z - 0.5)
+        fx[0] = (x - 0.5) - i[0]
+        fy[0] = y - j[0]
+        fz[0] = (z - 0.5) - k[0]
+    elif component == Component.W:
+        i[0] = <cnp.npy_intp>(x - 0.5)
+        j[0] = <cnp.npy_intp>(y - 0.5)
+        k[0] = <cnp.npy_intp>z
+        fx[0] = (x - 0.5) - i[0]
+        fy[0] = (y - 0.5) - j[0]
+        fz[0] = z - k[0]
+    else: #Scalar field
+        i[0] = <cnp.npy_intp>x
+        j[0] = <cnp.npy_intp>y
+        k[0] = <cnp.npy_intp>z
+        fx[0] = x - i[0]
+        fy[0] = y - j[0]
+        fz[0] = z - k[0]
+    #Clamp Indexes
+    if i[0] < 0:
+        i[0] = 0
+    elif i[0] > field_shape[0] - 2:
+        i[0] = field_shape[0] - 2
+    if j[0] < 0:
+        j[0] = 0
+    elif j[0] > field_shape[1] - 2:
+        j[0] = field_shape[1] - 2
+    if k[0] < 0:
+        k[0] = 0
+    elif k[0] > field_shape[2] - 2:
+        k[0] = field_shape[2] - 2
+    #Clamp Offsets
+    fx[0] = max(0.0, min(fx[0], 1.0))
+    fy[0] = max(0.0, min(fy[0], 1.0))
+    fz[0] = max(0.0, min(fz[0], 1.0))
+
 cpdef double interp_dir(double u1, double u2, double fdir):
     return (u1 * (1 - fdir) + u2 * fdir) 
 
-cpdef double interp_component_u(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_intp j, cnp.npy_intp k, double fx, double fy, double fz):
-    '''Find velocity of a component (u, v, w)
+cpdef double trilinear_interpolate(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_intp j, cnp.npy_intp k, double fx, double fy, double fz):
+    '''Main trilinear interpolation function, find velocity of a component (u, v, w)
     Grid cell index: (i, j, k) , Offset from grid cell: (fx, fy, fz)'''
     cdef double u000, u100, u010, u110, u001, u101, u011, u111
     #Grid dims
@@ -44,130 +101,48 @@ cpdef double interp_component_u(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_intp
 
 cpdef cnp.ndarray interp_u_at_p(MACGrid grid, cnp.ndarray pos):
     #Get the whole velocity vector from a position
-    cdef double cell_size = grid.cell_size
-    cdef double x_pos = pos[0] / cell_size
-    cdef double y_pos = pos[1] / cell_size
-    cdef double z_pos = pos[2] / cell_size
+    cdef double cs = grid.cell_size
+    cdef double x = pos[0]/cs
+    cdef double y = pos[1]/cs
+    cdef double z = pos[2]/cs
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    cdef cnp.npy_intp i = min(max(int(x_pos), 0), nx - 2)
-    cdef cnp.npy_intp j = min(max(int(y_pos), 0), ny - 2)
-    cdef cnp.npy_intp k = min(max(int(z_pos), 0), nz - 2)
-    cdef double fx = min(max(x_pos - i, 0.0), 1.0)
-    cdef double fy = min(max(y_pos - j, 0.0), 1.0)
-    cdef double fz = min(max(z_pos - k, 0.0), 1.0)
+    cdef cnp.npy_intp i = min(max(int(x), 0), nx - 2)
+    cdef cnp.npy_intp j = min(max(int(y), 0), ny - 2)
+    cdef cnp.npy_intp k = min(max(int(z), 0), nz - 2)
+    cdef double fx = min(max(x - i, 0.0), 1.0)
+    cdef double fy = min(max(y - j, 0.0), 1.0)
+    cdef double fz = min(max(z - k, 0.0), 1.0)
     cdef cnp.ndarray[double, ndim=1] vel = np.zeros(3, dtype=np.float64)
-    vel[0] = interp_component_u(grid.u, i, j, k, fx, fy, fz)  # U-component
-    vel[1] = interp_component_u(grid.v, i, j, k, fx, fy, fz)  # V-component
-    vel[2] = interp_component_u(grid.w, i, j, k, fx, fy, fz)  # W-component
+    vel[0] = trilinear_interpolate(grid.u, i, j, k, fx, fy, fz)  # U-component
+    vel[1] = trilinear_interpolate(grid.v, i, j, k, fx, fy, fz)  # V-component
+    vel[2] = trilinear_interpolate(grid.w, i, j, k, fx, fy, fz)  # W-component
     return vel
 
 cpdef double interp_component_u_at_p(cnp.ndarray face_vel, cnp.ndarray pos, Component component, MACGrid grid):
-    # Get a single component of the velocity field (u, v, w) at this position, using the face velocities
-    cdef cnp.npy_intp i, j, k
-    cdef double fx, fy, fz
-    cdef double cell_size = grid.cell_size
-    cdef double x = pos[0] / cell_size
-    cdef double y = pos[1] / cell_size
-    cdef double z = pos[2] / cell_size
-    # Determine grid indices and fractional offsets based on the component
-    if component == Component.U:
-        i = <cnp.npy_intp>x
-        j = <cnp.npy_intp>(y - 0.5)
-        k = <cnp.npy_intp>(z - 0.5)
-        fx = x - i
-        fy = (y - 0.5) - j
-        fz = (z - 0.5) - k
-    elif component == Component.V:
-        i = <cnp.npy_intp>(x - 0.5)
-        j = <cnp.npy_intp>y
-        k = <cnp.npy_intp>(z - 0.5)
-        fx = (x - 0.5) - i
-        fy = y - j
-        fz = (z - 0.5) - k
-    elif component == Component.W:
-        i = <cnp.npy_intp>(x - 0.5)
-        j = <cnp.npy_intp>(y - 0.5)
-        k = <cnp.npy_intp>z
-        fx = (x - 0.5) - i
-        fy = (y - 0.5) - j
-        fz = z - k
-    else:
-        raise ValueError("Invalid component: must be Component.U, Component.V, or Component.W")
-    # Clamp indices and offsets
-    i = min(max(i, 0), face_vel.shape[0] - 2)
-    j = min(max(j, 0), face_vel.shape[1] - 2)
-    k = min(max(k, 0), face_vel.shape[2] - 2)
-    fx = min(max(fx, 0.0), 1.0)
-    fy = min(max(fy, 0.0), 1.0)
-    fz = min(max(fz, 0.0), 1.0)
-    return interp_component_u(face_vel, i, j, k, fx, fy, fz)
+    cdef cnp.npy_intp i = 0, j = 0, k = 0  
+    cdef double fx = 0.0, fy = 0.0, fz = 0.0 
+    get_index_and_offset(pos, grid.cell_size, &face_vel.shape[0], &i, &j, &k, &fx, &fy, &fz, component)
+    return trilinear_interpolate(face_vel, i, j, k, fx, fy, fz)
 
-cpdef void set_face_velocities(MACGrid grid, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel):
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
-    if 0 <= x < nx+1:
-        grid.u[x, y, z] = vel[0]
-    if 0 <= x-1 < nx+1:
-        grid.u[x-1, y, z] = vel[0]
-    if 0 <= y < ny+1:
-        grid.v[x, y, z] = vel[1]
-    if 0 <= y-1 < ny+1:
-        grid.v[x, y-1, z] = vel[1]
-    if 0 <= z < nz+1:
-        grid.w[x, y, z] = vel[2]
-    if 0 <= z-1 < nz+1:
-        grid.w[x, y, z-1] = vel[2]
+cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, double cell_size):
+    cdef cnp.npy_intp i = 0, j = 0, k = 0 
+    cdef double fx = 0.0, fy = 0.0, fz = 0.0 
+    get_index_and_offset(pos, cell_size, &scalar_field.shape[0], &i, &j, &k, &fx, &fy, &fz, Component.S)
+    return trilinear_interpolate(scalar_field, i, j, k, fx, fy, fz)
 
-cpdef double interpolate_scalar_at_position(cnp.ndarray scalar_field, cnp.ndarray pos, double cell_size):
-    cdef cnp.npy_intp nx = scalar_field.shape[0]
-    cdef cnp.npy_intp ny = scalar_field.shape[1]
-    cdef cnp.npy_intp nz = scalar_field.shape[2]
-    cdef cnp.npy_intp i, j, k
-    cdef double x, y, z
-    cdef double fx, fy, fz
-    cdef double c000, c100, c010, c110, c001, c101, c011, c111
-    cdef double c00, c01, c10, c11, c0, c1, c
-    x = pos[0] / cell_size
-    y = pos[1] / cell_size
-    z = pos[2] / cell_size
-    i = <cnp.npy_intp>x
-    j = <cnp.npy_intp>y
-    k = <cnp.npy_intp>z
-    fx = x - i
-    fy = y - j
-    fz = z - k
-    i = min(max(i, 0), nx - 2)
-    j = min(max(j, 0), ny - 2)
-    k = min(max(k, 0), nz - 2)
-    fx = min(max(fx, 0.0), 1.0)
-    fy = min(max(fy, 0.0), 1.0)
-    fz = min(max(fz, 0.0), 1.0)
-    c000 = scalar_field[i, j, k]
-    c100 = scalar_field[i+1, j, k]
-    c010 = scalar_field[i, j+1, k]
-    c110 = scalar_field[i+1, j+1, k]
-    c001 = scalar_field[i, j, k+1]
-    c101 = scalar_field[i+1, j, k+1]
-    c011 = scalar_field[i, j+1, k+1]
-    c111 = scalar_field[i+1, j+1, k+1]
-    c00 = c000 * (1 - fx) + c100 * fx
-    c01 = c001 * (1 - fx) + c101 * fx
-    c10 = c010 * (1 - fx) + c110 * fx
-    c11 = c011 * (1 - fx) + c111 * fx
-    c0 = c00 * (1 - fy) + c10 * fy
-    c1 = c01 * (1 - fy) + c11 * fy
-    c = c0 * (1 - fz) + c1 * fz
-    return c
+''' -- Simulation Functions -- '''
 
-# Simulation Functions
+# -- Calculate DT
 
 cpdef double calc_dt(double initial_dt):
     return initial_dt
 
+# -- Apply wind force --
+
 cpdef void cy_predict_wind(MACGrid grid, cnp.ndarray wind, double dt):
+    # Apply wind to see where it will collide
     cdef cnp.npy_intp x, y, z
     cdef double wind_x, wind_y, wind_z
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -187,7 +162,50 @@ cpdef void cy_predict_wind(MACGrid grid, cnp.ndarray wind, double dt):
             for z in range(nz+1):
                 grid.w[x, y, z] += wind_z * dt
 
+# -- Collisions --
+
+cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
+    cdef cnp.ndarray vel = interp_u_at_p(grid, location)
+    cdef double dot_product
+    cdef cnp.ndarray reflected_velocity
+    cdef double damping_factor = 0.8
+    dot_product = np.dot(vel, normal)
+    reflected_velocity = vel - 2 * dot_product * normal
+    reflected_velocity *= damping_factor
+    grid.set_face_velocities(x, y, z, reflected_velocity)
+
+cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
+    # Perform collision check and redirect
+    cdef cnp.npy_intp x, y, z
+    cdef cnp.npy_intp nx = grid.grid_size[0]
+    cdef cnp.npy_intp ny = grid.grid_size[1]
+    cdef cnp.npy_intp nz = grid.grid_size[2]
+    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
+    cdef double cell_size = grid.cell_size
+    cdef object location, normal, distance
+    for x in range(nx):
+        for y in range(ny):
+            for z in range(nz):
+                pos[:] = grid.get_cell_position(x, y, z)
+                vel[:] = interp_u_at_p(grid, pos)
+                if np.linalg.norm(vel) == 0:
+                    continue
+                origin = Vector(pos - vel * dt)
+                direction = Vector(vel / np.linalg.norm(vel))
+                location, normal, _, distance = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
+                if location is not None and distance <= np.linalg.norm(vel) * dt:
+                    penetration_depth = np.linalg.norm(vel) * dt - distance
+                    correction = np.array(normal) * penetration_depth
+                    corrected_pos = pos + correction
+                    x_idx, y_idx, z_idx = x, y, z  
+                    grid.position[x_idx, y_idx, z_idx, :] = corrected_pos
+                    redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
+
+# -- Collision Advection --
+
 cpdef void cy_advect_velocities(MACGrid grid, double dt):
+    # Apply new velocities from collision
     cdef cnp.ndarray new_u = np.zeros_like(grid.u)
     cdef cnp.ndarray new_v = np.zeros_like(grid.v)
     cdef cnp.ndarray new_w = np.zeros_like(grid.w)
@@ -239,42 +257,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
 
-cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
-    cdef cnp.npy_intp x, y, z
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
-    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
-    cdef double cell_size = grid.cell_size
-    cdef object location, normal, distance
-    for x in range(nx):
-        for y in range(ny):
-            for z in range(nz):
-                pos[:] = grid.get_cell_position(x, y, z)
-                vel[:] = interp_u_at_p(grid, pos)
-                if np.linalg.norm(vel) == 0:
-                    continue
-                origin = Vector(pos - vel * dt)
-                direction = Vector(vel / np.linalg.norm(vel))
-                location, normal, _, distance = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
-                if location is not None and distance <= np.linalg.norm(vel) * dt:
-                    penetration_depth = np.linalg.norm(vel) * dt - distance
-                    correction = np.array(normal) * penetration_depth
-                    corrected_pos = pos + correction
-                    x_idx, y_idx, z_idx = x, y, z  
-                    grid.position[x_idx, y_idx, z_idx, :] = corrected_pos
-                    redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
-
-cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
-    cdef cnp.ndarray vel = interp_u_at_p(grid, location)
-    cdef double dot_product
-    cdef cnp.ndarray reflected_velocity
-    cdef double damping_factor = 0.8
-    dot_product = np.dot(vel, normal)
-    reflected_velocity = vel - 2 * dot_product * normal
-    reflected_velocity *= damping_factor
-    set_face_velocities(grid, x, y, z, reflected_velocity)
+# -- Pressure Solve --
 
 cpdef void apply_pressure_boundary_conditions(MACGrid grid):
     # Neumann boundary conditions (zero gradient at boundaries)
@@ -341,6 +324,8 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
                     ) / 6.0
         apply_pressure_boundary_conditions(grid)
 
+# -- Pressure Projection --
+
 cpdef void cy_project(MACGrid grid):
     cdef int x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -360,6 +345,8 @@ cpdef void cy_project(MACGrid grid):
             for z in range(1, nz):
                 grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
     apply_velocity_boundary_conditions(grid)
+
+# -- Final Advection --
 
 cpdef void cy_advect(MACGrid grid, double dt):
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -381,9 +368,11 @@ cpdef void cy_advect(MACGrid grid, double dt):
                 prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
                 prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
                 prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_density[x, y, z] = interpolate_scalar_at_position(grid.density, prev_pos, cell_size)
+                new_density[x, y, z] = interp_scalar_u_at_p(grid.density, prev_pos, cell_size)
                 grid.position[x, y, z, :] = pos + vel * dt
     grid.density[:, :, :] = new_density
+
+# -- Simulation main --
 
 cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, object bvh_tree):
     cdef double t = 0.0

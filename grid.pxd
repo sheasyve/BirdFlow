@@ -13,6 +13,7 @@ cdef class MACGrid:
     cdef cnp.ndarray position    # positions (pos) of cell center (array sz: nx, ny, nz, 3)
 
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)
+    cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
     cpdef void update_particle_positions(self, object particle_objects, int frame)
 
 '''Therefore, for a grid of nx, ny, nz cells, we store the pressure in a
