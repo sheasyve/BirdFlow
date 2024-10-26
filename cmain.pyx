@@ -202,7 +202,16 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
 # -- Collision Advection --
 
 cpdef void cy_advect_velocities(MACGrid grid, double dt):
-    # Apply new velocities from collision
+    # Apply new velocities from collision with RK3 method
+    cdef cnp.ndarray uk1 = np.zeros_like(grid.u)
+    cdef cnp.ndarray vk1 = np.zeros_like(grid.v)
+    cdef cnp.ndarray wk1 = np.zeros_like(grid.w)
+    cdef cnp.ndarray uk2 = np.zeros_like(grid.u)
+    cdef cnp.ndarray vk2 = np.zeros_like(grid.v)
+    cdef cnp.ndarray wk2 = np.zeros_like(grid.w)
+    cdef cnp.ndarray uk3 = np.zeros_like(grid.u)
+    cdef cnp.ndarray vk3 = np.zeros_like(grid.v)
+    cdef cnp.ndarray wk3 = np.zeros_like(grid.w)
     cdef cnp.ndarray new_u = np.zeros_like(grid.u)
     cdef cnp.ndarray new_v = np.zeros_like(grid.v)
     cdef cnp.ndarray new_w = np.zeros_like(grid.w)
@@ -211,8 +220,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef cnp.npy_intp x, y, z
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray prev_pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
     cdef double cell_size = grid.cell_size
     for x in range(nx+1):
         for y in range(ny):
@@ -220,36 +228,36 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 pos[0] = x * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = (z + 0.5) * cell_size
-                vel[:] = interp_u_at_p(grid, pos)
-                prev_pos[:] = pos - vel * dt
-                prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
-                prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
-                prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_u[x, y, z] = interp_component_u_at_p(grid.u, prev_pos, Component.U, grid)
+                uk1[x, y, z] = interp_component_u_at_p(grid.u, pos, Component.U, grid)
+                temp_pos[:] = pos + .5 * dt * uk1[x, y, z]
+                uk2[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
+                temp_pos[:] = pos + .75 * dt * uk2[x, y, z]
+                uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
+                new_u[x, y, z] = grid.u[x, y, z] + (2/9) * dt * uk1[x, y, z] + (3/9) * dt * uk2[x, y, z] + (4/9) * dt * uk3[x, y, z]
     for x in range(nx):
         for y in range(ny+1):
             for z in range(nz):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = y * cell_size
                 pos[2] = (z + 0.5) * cell_size
-                vel[:] = interp_u_at_p(grid, pos)
-                prev_pos[:] = pos - vel * dt
-                prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
-                prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
-                prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_v[x, y, z] = interp_component_u_at_p(grid.v, prev_pos, Component.V, grid)
+                vk1[x, y, z] = interp_component_u_at_p(grid.v, pos, Component.V, grid)
+                temp_pos[:] = pos + .5 * dt * vk1[x, y, z]
+                vk2[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
+                temp_pos[:] = pos + .75 * dt * vk2[x, y, z]
+                vk3[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
+                new_v[x, y, z] = grid.v[x, y, z] + (2/9) * dt * vk1[x, y, z] + (3/9) * dt * vk2[x, y, z] + (4/9) * dt * vk3[x, y, z]
     for x in range(nx):
         for y in range(ny):
             for z in range(nz+1):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = z * cell_size
-                vel[:] = interp_u_at_p(grid, pos)
-                prev_pos[:] = pos - vel * dt
-                prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
-                prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
-                prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_w[x, y, z] = interp_component_u_at_p(grid.w, prev_pos, Component.W, grid)
+                wk1[x, y, z] = interp_component_u_at_p(grid.w, pos, Component.W, grid)
+                temp_pos[:] = pos + .5 * dt * wk1[x, y, z]
+                wk2[x, y, z] = interp_component_u_at_p(grid.w, temp_pos, Component.W, grid)
+                temp_pos[:] = pos + .75 * dt * wk2[x, y, z]
+                wk3[x, y, z] = interp_component_u_at_p(grid.w, temp_pos, Component.W, grid)
+                new_w[x, y, z] = grid.w[x, y, z] + (2/9) * dt * wk1[x, y, z] + (3/9) * dt * wk2[x, y, z] + (4/9) * dt * wk3[x, y, z]
     grid.u[:, :, :] = new_u
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
@@ -345,7 +353,8 @@ cpdef void cy_project(MACGrid grid):
 
 # -- Final Advection --
 
-cpdef void cy_advect(MACGrid grid, double dt):
+cpdef void cy_advect_density(MACGrid grid, double dt):
+    # Advect density scalar with RK3 method
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
@@ -353,20 +362,23 @@ cpdef void cy_advect(MACGrid grid, double dt):
     cdef double cell_size = grid.cell_size
     cdef cnp.ndarray new_density
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray prev_pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k1 = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k2 = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k3 = np.zeros(3, dtype=np.float64)
     new_density = np.zeros_like(grid.density)
     for x in range(nx):
         for y in range(ny):
             for z in range(nz):
                 pos[:] = grid.get_cell_position(x, y, z)
-                vel[:] = interp_u_at_p(grid, pos)
-                prev_pos[:] = pos - vel * dt
-                prev_pos[0] = min(max(prev_pos[0], 0.0), nx * cell_size)
-                prev_pos[1] = min(max(prev_pos[1], 0.0), ny * cell_size)
-                prev_pos[2] = min(max(prev_pos[2], 0.0), nz * cell_size)
-                new_density[x, y, z] = interp_scalar_u_at_p(grid.density, prev_pos, cell_size)
-                grid.position[x, y, z, :] = pos + vel * dt
+                k1[:] = interp_u_at_p(grid, pos)
+                temp_pos[:] = pos + 0.5 * dt * k1
+                k2[:] = interp_u_at_p(grid, temp_pos)
+                temp_pos[:] = pos + 0.75 * dt * k2
+                k3[:] = interp_u_at_p(grid, temp_pos)
+                temp_pos[:] = pos + (2/9) * dt * k1 + (3/9) * dt * k2 + (4/9) * dt * k3
+                new_density[x, y, z] = interp_scalar_u_at_p(grid.density, temp_pos, cell_size)
+                grid.position[x, y, z, :] = temp_pos
     grid.density[:, :, :] = new_density
 
 # -- Simulation main --
@@ -382,5 +394,5 @@ cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, object
         cy_collide(grid, bvh_tree, dt)
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
-        cy_advect(grid, dt)
+        cy_advect_density(grid, dt)
         t += dt
