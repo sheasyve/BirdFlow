@@ -16,11 +16,10 @@ cdef enum Component:
 cdef void get_index_and_offset(double[:] pos, double cell_size, cnp.npy_intp *field_shape,
                                cnp.npy_intp* i, cnp.npy_intp* j, cnp.npy_intp* k,
                                double* fx, double* fy, double* fz, Component component):
-    #Helper function to get indexes and offsets to interpolate from
+    # Get i, j, k and fx, fy, fz for interpolation, from position
     cdef double x = pos[0] / cell_size
     cdef double y = pos[1] / cell_size
     cdef double z = pos[2] / cell_size
-    #Try Vector Field
     if component == Component.U:
         i[0] = <cnp.npy_intp>x
         j[0] = <cnp.npy_intp>(y - 0.5)
@@ -42,14 +41,14 @@ cdef void get_index_and_offset(double[:] pos, double cell_size, cnp.npy_intp *fi
         fx[0] = (x - 0.5) - i[0]
         fy[0] = (y - 0.5) - j[0]
         fz[0] = z - k[0]
-    else: #Scalar field
+    else: # Scalar field
         i[0] = <cnp.npy_intp>x
         j[0] = <cnp.npy_intp>y
         k[0] = <cnp.npy_intp>z
         fx[0] = x - i[0]
         fy[0] = y - j[0]
         fz[0] = z - k[0]
-    #Clamp Indexes
+    # Clamp Indexes
     if i[0] < 0:
         i[0] = 0
     elif i[0] > field_shape[0] - 2:
@@ -62,7 +61,7 @@ cdef void get_index_and_offset(double[:] pos, double cell_size, cnp.npy_intp *fi
         k[0] = 0
     elif k[0] > field_shape[2] - 2:
         k[0] = field_shape[2] - 2
-    #Clamp Offsets
+    # Clamp Offsets
     fx[0] = max(0.0, min(fx[0], 1.0))
     fy[0] = max(0.0, min(fy[0], 1.0))
     fz[0] = max(0.0, min(fz[0], 1.0))
@@ -74,33 +73,33 @@ cpdef double trilinear_interpolate(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_i
     '''Main trilinear interpolation function, find velocity of a component (u, v, w)
     Grid cell index: (i, j, k) , Offset from grid cell: (fx, fy, fz)'''
     cdef double u000, u100, u010, u110, u001, u101, u011, u111
-    #Grid dims
+    # Grid dims
     cdef cnp.npy_intp n0 = face_u.shape[0]
     cdef cnp.npy_intp n1 = face_u.shape[1]
     cdef cnp.npy_intp n2 = face_u.shape[2]
-    #Velocity of each face
+    # Velocity of each face
     u000 = face_u[i, j, k]
     u100 = face_u[min(i+1, n0-1), j, k]#i+1
     u010 = face_u[i, min(j+1, n1-1), k]#j+1
-    u110 = face_u[min(i+1, n0-1), min(j+1, n1-1), k]#i+1,j+1
+    u110 = face_u[min(i+1, n0-1), min(j+1, n1-1), k]#i+1, j+1
     u001 = face_u[i, j, min(k+1, n2-1)]#k+1
-    u101 = face_u[min(i+1, n0-1), j, min(k+1, n2-1)]#i+1,k+1
-    u011 = face_u[i, min(j+1, n1-1), min(k+1, n2-1)]#j+1,k+1
-    u111 = face_u[min(i+1, n0-1), min(j+1, n1-1), min(k+1, n2-1)]
-    #Interpolate x
+    u101 = face_u[min(i+1, n0-1), j, min(k+1, n2-1)]#i+1, k+1
+    u011 = face_u[i, min(j+1, n1-1), min(k+1, n2-1)]#j+1, k+1
+    u111 = face_u[min(i+1, n0-1), min(j+1, n1-1), min(k+1, n2-1)]#i+1, j+1, k+1
+    # Interpolate x
     cdef double c00 = interp_dir(u000, u100, fx)
     cdef double c01 = interp_dir(u001, u101, fx)
     cdef double c10 = interp_dir(u010, u110, fx)
     cdef double c11 = interp_dir(u011, u111, fx)
-    #Interpolate y
+    # Interpolate y
     cdef double c0 = interp_dir(c00, c10, fy)
     cdef double c1 = interp_dir(c01, c11, fy)
-    #Interpolate z
+    # Interpolate z
     cdef double c = interp_dir(c0, c1, fz)
     return c
 
 cpdef cnp.ndarray interp_u_at_p(MACGrid grid, cnp.ndarray pos):
-    #Get the whole velocity vector from a position
+    # Get the whole velocity vector from a position
     cdef double cs = grid.cell_size
     cdef double x = pos[0]/cs
     cdef double y = pos[1]/cs
@@ -121,12 +120,14 @@ cpdef cnp.ndarray interp_u_at_p(MACGrid grid, cnp.ndarray pos):
     return vel
 
 cpdef double interp_component_u_at_p(cnp.ndarray face_vel, cnp.ndarray pos, Component component, MACGrid grid):
+    # Interpolate one component (u, v, w)
     cdef cnp.npy_intp i = 0, j = 0, k = 0  
     cdef double fx = 0.0, fy = 0.0, fz = 0.0 
     get_index_and_offset(pos, grid.cell_size, &face_vel.shape[0], &i, &j, &k, &fx, &fy, &fz, component)
     return trilinear_interpolate(face_vel, i, j, k, fx, fy, fz)
 
 cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, double cell_size):
+    # Interpolate a scalar (i.e pressure)
     cdef cnp.npy_intp i = 0, j = 0, k = 0 
     cdef double fx = 0.0, fy = 0.0, fz = 0.0 
     get_index_and_offset(pos, cell_size, &scalar_field.shape[0], &i, &j, &k, &fx, &fy, &fz, Component.S)
@@ -167,11 +168,14 @@ cpdef void cy_predict_wind(MACGrid grid, cnp.ndarray wind, double dt):
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef double dot_product
-    cdef cnp.ndarray reflected_velocity
+    cdef cnp.ndarray reflected_velocity, tangential_velocity
     cdef double damping_factor = 0.8
+    cdef double friction_coefficient = 0.2
     dot_product = np.dot(vel, normal)
     reflected_velocity = vel - 2 * dot_product * normal
     reflected_velocity *= damping_factor
+    tangential_velocity = reflected_velocity - np.dot(reflected_velocity, normal) * normal
+    reflected_velocity -= friction_coefficient * tangential_velocity
     grid.set_face_velocities(x, y, z, reflected_velocity)
 
 cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
@@ -199,10 +203,10 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
                     grid.position[x, y, z, :] = new_pos
                     redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
 
-# -- Collision Advection --
+# -- Velocity Advection --
 
 cpdef void cy_advect_velocities(MACGrid grid, double dt):
-    # Apply new velocities from collision with RK3 method
+    # Apply new velocities from collision with RK3 (Runge Kutta Order-3) method
     cdef cnp.ndarray uk1 = np.zeros_like(grid.u)
     cdef cnp.ndarray vk1 = np.zeros_like(grid.v)
     cdef cnp.ndarray wk1 = np.zeros_like(grid.w)
@@ -311,22 +315,18 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     for x in range(1, nx-1):
         for y in range(1, ny-1):
             for z in range(1, nz-1):
-                divergence[x, y, z] = (
-                    (grid.u[x+1, y, z] - grid.u[x, y, z]) +
+                divergence[x, y, z] = ((grid.u[x+1, y, z] - grid.u[x, y, z]) +
                     (grid.v[x, y+1, z] - grid.v[x, y, z]) +
-                    (grid.w[x, y, z+1] - grid.w[x, y, z])
-                ) / h
+                    (grid.w[x, y, z+1] - grid.w[x, y, z])) / h
     # Solve for pressure using Gauss-Seidel iteration
     for iter in range(iterations):
         for x in range(1, nx-1):
             for y in range(1, ny-1):
                 for z in range(1, nz-1):
-                    grid.pressure[x, y, z] = (
-                        grid.pressure[x+1, y, z] + grid.pressure[x-1, y, z] +
+                    grid.pressure[x, y, z] = (grid.pressure[x+1, y, z] + grid.pressure[x-1, y, z] +
                         grid.pressure[x, y+1, z] + grid.pressure[x, y-1, z] +
                         grid.pressure[x, y, z+1] + grid.pressure[x, y, z-1] -
-                        h * h * divergence[x, y, z]
-                    ) / 6.0
+                        h * h * divergence[x, y, z]) / 6.0
         apply_pressure_boundary_conditions(grid)
 
 # -- Pressure Projection --
