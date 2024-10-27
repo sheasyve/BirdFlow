@@ -49,14 +49,15 @@ class WindSim(bpy.types.Operator):
                 grid_size = (grid_size_x, grid_size_y, grid_size_z)
                 wind_speed_x = scene.wind_simulation_wind_speed_x
                 particle_density = scene.wind_simulation_particle_density
-                particle_spread = scene.wind_simulation_particle_spread
+                cell_size = scene.wind_simulation_particle_spread
+                particle_spread = cell_size
                 num_particles = int(grid_size_x * grid_size_y * grid_size_z * particle_density)
                 particle_positions = np.random.rand(num_particles, 3) * particle_spread
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
                 self.run_simulation(
-                    MACGrid(grid_size, CELL_SIZE), 
+                    MACGrid(grid_size, cell_size), 
                     self.get_bvh_tree(obj), 
                     num_frames, 
                     dt, 
@@ -176,9 +177,9 @@ def register():
         max=100.0
     )
     bpy.types.Scene.wind_simulation_particle_spread = bpy.props.FloatProperty(
-        name="Particle Spread",
+        name="Cell Size",
         description="Distance between particles when they are created",
-        default=0.1,
+        default=0.5,
         min=0.001,
         max=5.0
     )

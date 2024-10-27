@@ -18,6 +18,7 @@ cdef class MACGrid:
         self.v = np.zeros((nx, ny+1, nz), dtype=np.float64)
         self.w = np.zeros((nx, ny, nz+1), dtype=np.float64)
         self.pressure = np.zeros((nx, ny, nz), dtype=np.float64)
+        self.max_vel = 0
         self.density = np.zeros((nx, ny, nz), dtype=np.float64)
         self.position = np.zeros((nx, ny, nz, 3), dtype=np.float64)
         for x in range(nx):
@@ -51,3 +52,5 @@ cdef class MACGrid:
             if i < positions.shape[0]:
                 particle.location = Vector(positions[i])
                 particle.keyframe_insert(data_path="location", frame=frame)
+
+        

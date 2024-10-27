@@ -238,6 +238,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = pos + .75 * dt * uk2[x, y, z]
                 uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
                 new_u[x, y, z] = grid.u[x, y, z] + (2/9) * dt * uk1[x, y, z] + (3/9) * dt * uk2[x, y, z] + (4/9) * dt * uk3[x, y, z]
+
     for x in range(nx):
         for y in range(ny+1):
             for z in range(nz):
@@ -250,6 +251,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = pos + .75 * dt * vk2[x, y, z]
                 vk3[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
                 new_v[x, y, z] = grid.v[x, y, z] + (2/9) * dt * vk1[x, y, z] + (3/9) * dt * vk2[x, y, z] + (4/9) * dt * vk3[x, y, z]
+
     for x in range(nx):
         for y in range(ny):
             for z in range(nz+1):
@@ -304,6 +306,12 @@ cpdef void apply_velocity_boundary_conditions(MACGrid grid):
             grid.w[x, y, 0] = 0.0
             grid.w[x, y, nz] = 0.0  
 
+cpdef double max_u(MACGrid grid, int x, int y, int z):
+    cdef double u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
+    cdef double v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
+    cdef double w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
+    return (u**2+v**2+w**2)**0.5
+
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef int x, y, z, iter
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -311,6 +319,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef double h = grid.cell_size
     cdef cnp.ndarray divergence = np.zeros((nx, ny, nz), dtype=np.float64)
+    grid.max_vel = 0
     # Compute divergence of velocity field
     for x in range(1, nx-1):
         for y in range(1, ny-1):
@@ -318,6 +327,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
                 divergence[x, y, z] = ((grid.u[x+1, y, z] - grid.u[x, y, z]) +
                     (grid.v[x, y+1, z] - grid.v[x, y, z]) +
                     (grid.w[x, y, z+1] - grid.w[x, y, z])) / h
+                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))
     # Solve for pressure using Gauss-Seidel iteration
     for iter in range(iterations):
         for x in range(1, nx-1):

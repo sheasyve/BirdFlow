@@ -8,10 +8,10 @@ cdef class MACGrid:
     cdef cnp.ndarray u       # x-vel (ux) at faces (array sz: nx+1, ny, nz)
     cdef cnp.ndarray v       # y-vel (uy) at faces (array sz: nx, ny+1, nz)
     cdef cnp.ndarray w       # z-vel (uz) at faces (array sz: nx, ny, nz+1)
+    cdef double max_vel # max current velocity in grid
     cdef cnp.ndarray pressure    # pressure (p) at cell center (array sz: nx, ny, nz)
     cdef cnp.ndarray density     # density (rho) at cell center (array sz, ny, nz)
     cdef cnp.ndarray position    # positions (pos) of cell center (array sz: nx, ny, nz, 3)
-
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)
     cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
     cpdef void update_particle_positions(self, object particle_objects, int frame)
