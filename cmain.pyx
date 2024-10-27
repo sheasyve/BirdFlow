@@ -137,8 +137,11 @@ cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, dou
 
 # -- Calculate DT
 
-cpdef double calc_dt(double initial_dt):
-    return initial_dt
+cpdef double calc_dt(MACGrid grid, double initial_dt, double cell_size, cnp.ndarray wind_acceleration):
+    cdef double cfl = 0.5
+    cdef double force = np.linalg.norm(wind_acceleration)
+    cdef double umax = grid.max_vel + (cell_size * force) ** 0.5
+    return cfl * (cell_size / umax) if umax != 0 else cell_size
 
 # -- Apply wind force --
 
@@ -334,8 +337,8 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
                 divergence[x, y, z] = ((grid.u[x+1, y, z] - grid.u[x, y, z]) +
                     (grid.v[x, y+1, z] - grid.v[x, y, z]) +
                     (grid.w[x, y, z+1] - grid.w[x, y, z])) / h
-                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))
-    # Solve for pressure using Gauss-Seidel iteration
+                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))#Get max velocity of grid here for convenience
+    # Gauss-Seidel iteration
     for iter in range(iterations):
         for x in range(1, nx-1):
             for y in range(1, ny-1):
@@ -400,12 +403,14 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
 
 # -- Simulation main --
 
-cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, double damping_factor):
+cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
+        object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, 
+        double damping_factor, double cell_size):
     cdef double t = 0.0
     cdef double tframe = 1.0
     cdef double dt
     while t < tframe:
-        dt = min(calc_dt(initial_dt), tframe - t)
+        dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
         cy_predict_wind(grid, 1, wind_speed, wind_acceleration,damping_factor)
         cy_advect_velocities(grid, dt)
         cy_collide(grid, bvh_tree, dt)

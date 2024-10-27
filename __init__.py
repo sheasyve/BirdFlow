@@ -40,7 +40,6 @@ class WindSim(bpy.types.Operator):
             obj = context.active_object
             if obj and obj.type == 'MESH':
                 num_frames = scene.wind_simulation_num_frames
-                dt = scene.wind_simulation_dt
                 grid_size_x = scene.wind_simulation_grid_size_x
                 grid_size_y = scene.wind_simulation_grid_size_y
                 grid_size_z = scene.wind_simulation_grid_size_z
@@ -56,15 +55,11 @@ class WindSim(bpy.types.Operator):
                 bpy.context.scene.frame_end = num_frames
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
                 wind_acceleration = np.array([wind_acceleration_x, 0.0, 0.0], dtype=np.float64)
-                self.run_simulation(
-                    MACGrid(grid_size, cell_size), 
-                    self.get_bvh_tree(obj), 
-                    num_frames, 
-                    dt, 
+                self.run_simulation(MACGrid(grid_size, cell_size), 
+                    self.get_bvh_tree(obj), num_frames,  
                     self.make_particles(self.create_particle_collection(), particle_positions),
-                    wind_speed,
-                    wind_acceleration,
-                    damping_factor)
+                    wind_speed, wind_acceleration,
+                    damping_factor, cell_size)
                 self.report({'INFO'}, "Simulation finished.")
                 return {'FINISHED'}
             else:
@@ -108,11 +103,14 @@ class WindSim(bpy.types.Operator):
             particle_objects.append(particle)
         return particle_objects
 
-    def run_simulation(self, grid, bvh_tree, num_frames, dt, particle_objects, wind_speed, wind_acceleration, damping_factor):
+    def run_simulation(self, grid, bvh_tree, num_frames,
+                       particle_objects, wind_speed, wind_acceleration, 
+                       damping_factor, cell_size):
         self.report({'INFO'}, "Running Simulation.")
+        dt = 1.
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor) # type: ignore
+            cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor,cell_size) # type: ignore
             grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
@@ -196,13 +194,6 @@ def register():
         min=1,
         max=1000
     )
-    bpy.types.Scene.wind_simulation_dt = bpy.props.FloatProperty(
-        name="Time Step",
-        description="Time step for the simulation",
-        default=0.1,
-        min=0.001,
-        max=1.0
-    )
 
 def unregister():
     bpy.utils.unregister_class(WindSim)
@@ -214,7 +205,6 @@ def unregister():
     del bpy.types.Scene.wind_simulation_wind_acceleration_x
     del bpy.types.Scene.wind_simulation_particle_spread
     del bpy.types.Scene.wind_simulation_num_frames
-    del bpy.types.Scene.wind_simulation_dt
     del bpy.types.Scene.wind_simulation_damping_factor  
 
 if __name__ == "__main__":
