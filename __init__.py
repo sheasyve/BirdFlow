@@ -6,7 +6,7 @@ import numpy as np # type: ignore
 from .grid import MACGrid
 from .cmain import *
 
-COEFFICIENT_OF_FRICTION = 1.0
+COEFFICIENT_OF_FRICTION = 0.003
 EPSILON = 1e-4
 PARTICLE_COLOR = [1.0, 1.0, 1.0, 0.5]
 
@@ -110,7 +110,8 @@ class WindSim(bpy.types.Operator):
         dt = 1.
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor,cell_size) # type: ignore
+            cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, 
+                        wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION) # type: ignore
             grid.update_particle_positions(particle_objects, frame)
 
 class WindSimPanel(bpy.types.Panel):
@@ -174,7 +175,7 @@ def register():
         max=100.0
     )
     bpy.types.Scene.wind_simulation_damping_factor = bpy.props.FloatProperty(
-        name="Damping Factor",
+        name="Wind Damping",
         description="Damping factor for wind.",
         default=0.8,
         min=0.0,

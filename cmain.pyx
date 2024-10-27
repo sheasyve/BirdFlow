@@ -174,23 +174,18 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
                     grid.w[x, y, z] = min(grid.w[x, y, z], wind_speed[2])
                 grid.w[x, y, z] *= damping_factor
 
-
 # -- Collisions --
 
-cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
+cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
-    cdef double dot_product
-    cdef cnp.ndarray reflected_velocity, tangential_velocity
-    cdef double damping_factor = 0.8
-    cdef double friction_coefficient = 0.2
-    dot_product = np.dot(vel, normal)
-    reflected_velocity = vel - 2 * dot_product * normal
-    reflected_velocity *= damping_factor
-    tangential_velocity = reflected_velocity - np.dot(reflected_velocity, normal) * normal
-    reflected_velocity -= friction_coefficient * tangential_velocity
-    grid.set_face_velocities(x, y, z, reflected_velocity)
+    cdef cnp.ndarray reflected_u, tangent_u
+    cdef double damping = 0.8
+    reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
+    tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
+    reflected_u -= friction * tangent_u
+    grid.set_face_velocities(x, y, z, reflected_u)
 
-cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
+cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt, double damping_factor, double friction):
     # Perform collision check and redirect
     cdef cnp.npy_intp x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -213,7 +208,7 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt):
                 if location is not None and distance <= np.linalg.norm(vel) * dt: #Collision
                     new_pos = pos + (np.array(normal) * (np.linalg.norm(vel) * dt - distance))
                     grid.position[x, y, z, :] = new_pos
-                    redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z)
+                    redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z, damping_factor, friction)
 
 # -- Velocity Advection --
 
@@ -280,6 +275,13 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
 
 # -- Pressure Solve --
 
+cpdef double max_u(MACGrid grid, int x, int y, int z):
+    # Gets max velocity in simulation during pressure solve for next dt calculation
+    cdef double u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
+    cdef double v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
+    cdef double w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
+    return (u**2+v**2+w**2)**0.5
+
 cpdef void apply_pressure_boundary_conditions(MACGrid grid):
     # Neumann boundary conditions (zero gradient at boundaries)
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -316,12 +318,6 @@ cpdef void apply_velocity_boundary_conditions(MACGrid grid):
             grid.w[x, y, 0] = 0.0
             grid.w[x, y, nz] = 0.0  
 
-cpdef double max_u(MACGrid grid, int x, int y, int z):
-    cdef double u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
-    cdef double v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
-    cdef double w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
-    return (u**2+v**2+w**2)**0.5
-
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef int x, y, z, iter
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -337,7 +333,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
                 divergence[x, y, z] = ((grid.u[x+1, y, z] - grid.u[x, y, z]) +
                     (grid.v[x, y+1, z] - grid.v[x, y, z]) +
                     (grid.w[x, y, z+1] - grid.w[x, y, z])) / h
-                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))#Get max velocity of grid here for convenience
+                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))#Might as well calculate this now
     # Gauss-Seidel iteration
     for iter in range(iterations):
         for x in range(1, nx-1):
@@ -405,15 +401,15 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
 
 cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
         object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, 
-        double damping_factor, double cell_size):
+        double damping_factor, double cell_size, double friction):
     cdef double t = 0.0
     cdef double tframe = 1.0
     cdef double dt
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
-        cy_predict_wind(grid, 1, wind_speed, wind_acceleration,damping_factor)
+        cy_predict_wind(grid, 1, wind_speed, wind_acceleration, damping_factor)
         cy_advect_velocities(grid, dt)
-        cy_collide(grid, bvh_tree, dt)
+        cy_collide(grid, bvh_tree, dt, damping_factor, friction) 
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
         cy_advect_density(grid, dt)
