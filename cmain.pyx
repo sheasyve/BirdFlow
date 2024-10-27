@@ -142,26 +142,35 @@ cpdef double calc_dt(double initial_dt):
 
 # -- Apply wind force --
 
-cpdef void cy_predict_wind(MACGrid grid, cnp.ndarray wind, double dt):
-    # Apply wind to see where it will collide
+cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
     cdef cnp.npy_intp x, y, z
-    cdef double wind_x, wind_y, wind_z
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    wind_x, wind_y, wind_z = wind
     for x in range(nx+1):
         for y in range(ny):
             for z in range(nz):
-                grid.u[x, y, z] += wind_x * dt
+                if grid.u[x, y, z] < wind_speed[0]:
+                    grid.u[x, y, z] += wind_acceleration[0] * dt
+                    grid.u[x, y, z] = min(grid.u[x, y, z], wind_speed[0])
+                grid.u[x, y, z] *= damping_factor
+
     for x in range(nx):
         for y in range(ny+1):
             for z in range(nz):
-                grid.v[x, y, z] += wind_y * dt
+                if grid.v[x, y, z] < wind_speed[1]:
+                    grid.v[x, y, z] += wind_acceleration[1] * dt
+                    grid.v[x, y, z] = min(grid.v[x, y, z], wind_speed[1])
+                grid.v[x, y, z] *= damping_factor
+
     for x in range(nx):
         for y in range(ny):
             for z in range(nz+1):
-                grid.w[x, y, z] += wind_z * dt
+                if grid.w[x, y, z] < wind_speed[2]:
+                    grid.w[x, y, z] += wind_acceleration[2] * dt
+                    grid.w[x, y, z] = min(grid.w[x, y, z], wind_speed[2])
+                grid.w[x, y, z] *= damping_factor
+
 
 # -- Collisions --
 
@@ -238,7 +247,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = pos + .75 * dt * uk2[x, y, z]
                 uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
                 new_u[x, y, z] = grid.u[x, y, z] + (2/9) * dt * uk1[x, y, z] + (3/9) * dt * uk2[x, y, z] + (4/9) * dt * uk3[x, y, z]
-
     for x in range(nx):
         for y in range(ny+1):
             for z in range(nz):
@@ -251,7 +259,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = pos + .75 * dt * vk2[x, y, z]
                 vk3[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
                 new_v[x, y, z] = grid.v[x, y, z] + (2/9) * dt * vk1[x, y, z] + (3/9) * dt * vk2[x, y, z] + (4/9) * dt * vk3[x, y, z]
-
     for x in range(nx):
         for y in range(ny):
             for z in range(nz+1):
@@ -393,13 +400,13 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
 
 # -- Simulation main --
 
-cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, object bvh_tree):
+cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, double damping_factor):
     cdef double t = 0.0
     cdef double tframe = 1.0
     cdef double dt
     while t < tframe:
         dt = min(calc_dt(initial_dt), tframe - t)
-        cy_predict_wind(grid, wind, dt)
+        cy_predict_wind(grid, 1, wind_speed, wind_acceleration,damping_factor)
         cy_advect_velocities(grid, dt)
         cy_collide(grid, bvh_tree, dt)
         cy_pressure_solve(grid, dt, iterations=50)
