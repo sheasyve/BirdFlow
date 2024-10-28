@@ -187,7 +187,7 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef cnp.ndarray reflected_u, tangent_u
-    cdef double damping = 0.3
+    cdef double damping = 0.9
     reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
     tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
     reflected_u -= friction * tangent_u
