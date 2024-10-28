@@ -144,7 +144,7 @@ def register():
     bpy.types.Scene.wind_simulation_grid_size_x = bpy.props.IntProperty(
         name="Grid Size X",
         description="Grid size in X direction",
-        default=10,
+        default=5,
         min=2,
         max=50
     )

@@ -40,7 +40,7 @@ cdef class MACGrid:
                 for z in range(nz):
                     pos.x, pos.y, pos.z = self.position[x, y, z, :]
                     location, normal, index, distance = bvh_tree.find_nearest(pos)
-                    if location and (location - pos).length < self.cell_size * 0.3:
+                    if location and (location - pos).length < self.cell_size * 0.001:
                         self.solid_mask[x, y, z] = 1
 
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):

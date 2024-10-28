@@ -187,7 +187,7 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef cnp.ndarray reflected_u, tangent_u
-    cdef double damping = 0.95
+    cdef double damping = 0.99
     reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
     tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
     reflected_u -= friction * tangent_u
@@ -275,7 +275,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 wk3[x, y, z] = interp_component_u_at_p(grid.w, temp_pos, Component.W, grid)
                 new_w[x, y, z] = grid.w[x, y, z] + (2 / 9) * dt * wk1[x, y, z] + (3 / 9) * dt * wk2[x, y, z] + (4 / 9) * dt * wk3[x, y, z]
-
     grid.u[:, :, :] = new_u
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
