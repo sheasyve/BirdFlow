@@ -187,7 +187,7 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef cnp.ndarray reflected_u, tangent_u
-    cdef double damping = 0.99
+    cdef double damping = 0.9
     reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
     tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
     reflected_u -= friction * tangent_u
@@ -280,7 +280,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
     grid.w[:, :, :] = new_w
     v_boundary_conditions(grid)
 
-
 # -- Pressure Solve --
 
 cpdef double get_vel(MACGrid grid, int x, int y, int z):
@@ -345,9 +344,9 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
                 grid.divergence[x, y, z] = (u_diff + v_diff + w_diff) / h
                 max_vel = max(max_vel, get_vel(grid, x, y, z))
     grid.max_vel = max_vel
-    rhs = np.nan_to_num(grid.divergence.flatten())
-    grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(), maxiter=iterations)
-    grid.pressure = grid.pressure.reshape((nx, ny, nz))
+    rhs = np.nan_to_num(grid.divergence.flatten(order='F'))
+    grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(order='F'), maxiter=iterations)
+    grid.pressure = grid.pressure.reshape((nx, ny, nz),order='F')
 
 # -- Pressure Projection --
 
