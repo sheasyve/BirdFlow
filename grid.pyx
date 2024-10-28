@@ -90,11 +90,6 @@ cdef class MACGrid:
                     row.append(p)
                     col.append(p)
                     data.append(6)  # Center coefficient
-                    
-                    # Debug print to check for NaN values
-                    if np.isnan(row[-1]) or np.isnan(col[-1]) or np.isnan(data[-1]):
-                        print(f"NaN found in sparse matrix at index ({x}, {y}, {z}): row={row[-1]}, col={col[-1]}, data={data[-1]}")
-
                     # Check each neighbor and add connections if not solid
                     if x > 0 and self.solid_mask[x - 1, y, z] == 0:
                         row.append(p)
@@ -120,11 +115,6 @@ cdef class MACGrid:
                         row.append(p)
                         col.append(self.index(x, y, z + 1, nx, ny, nz))
                         data.append(-1)
-
-        # Create sparse matrix and check for NaNs
         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
-        if np.isnan(laplacian.data).any():
-            raise ValueError("NaN detected in sparse matrix laplacian data")
-
         return laplacian.tocsr()
         
