@@ -40,8 +40,8 @@ class WindSim(bpy.types.Operator):
             obj = context.active_object
             if obj and obj.type == 'MESH':
                 num_frames = scene.wind_simulation_num_frames
-                size = scene.wind_simulation_grid_size_x
-                grid_size = (grid_size, grid_size, grid_size)
+                size = scene.wind_simulation_grid_size
+                grid_size = (size, size, size)
                 wind_speed_x = scene.wind_simulation_wind_speed_x
                 cell_size = scene.wind_simulation_particle_spread
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
