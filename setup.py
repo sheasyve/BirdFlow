@@ -2,6 +2,7 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 from Cython.Compiler import Options
+
 Options.language_level = 3
 
 extensions = [
@@ -10,7 +11,7 @@ extensions = [
         sources=["cmain.pyx"],
         include_dirs=[
             np.get_include(),
-            "/usr/include/python3.11",  
+            "/usr/include/python3.11",
         ],
         libraries=["stdc++"],
         define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
@@ -20,12 +21,11 @@ extensions = [
         sources=["grid.pyx"],
         include_dirs=[
             np.get_include(),
-            "/usr/include/python3.11",  
+            "/usr/include/python3.11",
         ],
         libraries=["stdc++"],
         define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
     )
-
 ]
 
 setup(
@@ -34,5 +34,5 @@ setup(
     description="A Blender extension using Cython",
     ext_modules=cythonize(extensions),
     setup_requires=['numpy', 'cython', 'wheel'],
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy'],  
 )

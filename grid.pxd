@@ -1,7 +1,7 @@
 # grid.pxd
 cimport numpy as cnp
 from mathutils import Vector
-
+from mathutils.bvhtree import BVHTree
 cdef class MACGrid:
     cdef cnp.npy_intp grid_size[3]
     cdef double cell_size
@@ -12,6 +12,8 @@ cdef class MACGrid:
     cdef cnp.ndarray pressure    # pressure (p) at cell center (array sz: nx, ny, nz)
     cdef cnp.ndarray density     # density (rho) at cell center (array sz, ny, nz)
     cdef cnp.ndarray position    # positions (pos) of cell center (array sz: nx, ny, nz, 3)
+    cdef cnp.ndarray solid_mask  # Array representing the mesh, for collisions
+    cpdef cnp.ndarray get_mask(self, object bvh_tree)
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)
     cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
     cpdef void update_particle_positions(self, object particle_objects, int frame)

@@ -55,8 +55,9 @@ class WindSim(bpy.types.Operator):
                 bpy.context.scene.frame_end = num_frames
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
                 wind_acceleration = np.array([wind_acceleration_x, 0.0, 0.0], dtype=np.float64)
+                bvh = self.get_bvh_tree(obj)
                 self.run_simulation(MACGrid(grid_size, cell_size), 
-                    self.get_bvh_tree(obj), num_frames,  
+                    bvh, num_frames,  
                     self.make_particles(self.create_particle_collection(), particle_positions),
                     wind_speed, wind_acceleration,
                     damping_factor, cell_size)
@@ -108,6 +109,7 @@ class WindSim(bpy.types.Operator):
                        damping_factor, cell_size):
         self.report({'INFO'}, "Running Simulation.")
         dt = 1.
+        grid.get_mask(bvh_tree)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
             cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, 

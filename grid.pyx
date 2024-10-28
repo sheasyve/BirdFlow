@@ -4,6 +4,7 @@
 import numpy as np
 cimport numpy as cnp
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 cdef class MACGrid:
 
@@ -20,11 +21,24 @@ cdef class MACGrid:
         self.pressure = np.zeros((nx, ny, nz), dtype=np.float64)
         self.max_vel = 0
         self.density = np.zeros((nx, ny, nz), dtype=np.float64)
+        self.solid_mask = np.zeros((nx, ny, nz), dtype=np.float32)
         self.position = np.zeros((nx, ny, nz, 3), dtype=np.float64)
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]  # Mac grid offset
+
+    cpdef cnp.ndarray get_mask(self, object bvh_tree):
+        cdef cnp.npy_intp nx, ny, nz
+        nx, ny, nz = self.grid_size
+        pos = Vector((0.0, 0.0, 0.0)) 
+        for x in range(nx):
+            for y in range(ny):
+                for z in range(nz):
+                    pos.x, pos.y, pos.z = self.position[x, y, z, :]
+                    location, normal, index, distance = bvh_tree.find_nearest(pos)
+                    if location and (location - pos).length < self.cell_size * 0.3:
+                        self.solid_mask[x, y, z] = 1
 
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
         return self.position[x, y, z, :]

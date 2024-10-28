@@ -4,6 +4,9 @@ import numpy as np
 cimport numpy as cnp
 from mathutils import Vector
 from grid cimport MACGrid
+from scipy.sparse import csr_matrix
+from scipy.sparse import coo_matrix
+from scipy.sparse.linalg import cg 
 
 cdef enum Component:
     U = 0
@@ -272,6 +275,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
     grid.u[:, :, :] = new_u
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
+    apply_velocity_boundary_conditions(grid)
 
 # -- Pressure Solve --
 
@@ -317,6 +321,8 @@ cpdef void apply_velocity_boundary_conditions(MACGrid grid):
         for y in range(ny):
             grid.w[x, y, 0] = 0.0
             grid.w[x, y, nz] = 0.0  
+
+#cpdef void build_sparse(MACGrid grid):
 
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef int x, y, z, iter
