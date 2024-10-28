@@ -153,29 +153,36 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    for x in range(nx+1):
+    for x in range(nx + 1):
         for y in range(ny):
             for z in range(nz):
+                grid.u[x, y, z] *= damping_factor
                 if grid.u[x, y, z] < wind_speed[0]:
                     grid.u[x, y, z] += wind_acceleration[0] * dt
-                    grid.u[x, y, z] = min(grid.u[x, y, z], wind_speed[0])
-                grid.u[x, y, z] *= damping_factor
-
+                grid.u[x, y, z] = max(min(grid.u[x, y, z], wind_speed[0]), -wind_speed[0])
     for x in range(nx):
-        for y in range(ny+1):
+        for y in range(ny + 1):
             for z in range(nz):
+                grid.v[x, y, z] *= damping_factor
                 if grid.v[x, y, z] < wind_speed[1]:
                     grid.v[x, y, z] += wind_acceleration[1] * dt
-                    grid.v[x, y, z] = min(grid.v[x, y, z], wind_speed[1])
-                grid.v[x, y, z] *= damping_factor
-
+                grid.v[x, y, z] = max(min(grid.v[x, y, z], wind_speed[1]), -wind_speed[1])
     for x in range(nx):
         for y in range(ny):
-            for z in range(nz+1):
+            for z in range(nz + 1):
+                grid.w[x, y, z] *= damping_factor
                 if grid.w[x, y, z] < wind_speed[2]:
                     grid.w[x, y, z] += wind_acceleration[2] * dt
-                    grid.w[x, y, z] = min(grid.w[x, y, z], wind_speed[2])
-                grid.w[x, y, z] *= damping_factor
+                grid.w[x, y, z] = max(min(grid.w[x, y, z], wind_speed[2]), -wind_speed[2])
+    print("U-velocity statistics after wind prediction:")
+    print("Min:", np.min(grid.u), "Max:", np.max(grid.u))
+
+    print("V-velocity statistics after wind prediction:")
+    print("Min:", np.min(grid.v), "Max:", np.max(grid.v))
+
+    print("W-velocity statistics after wind prediction:")
+    print("Min:", np.min(grid.w), "Max:", np.max(grid.w))
+
 
 # -- Collisions --
 
@@ -279,7 +286,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
 
 # -- Pressure Solve --
 
-cpdef double max_u(MACGrid grid, int x, int y, int z):
+cpdef double get_vel(MACGrid grid, int x, int y, int z):
     # Gets max velocity in simulation during pressure solve for next dt calculation
     cdef double u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
     cdef double v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
@@ -325,31 +332,47 @@ cpdef void apply_velocity_boundary_conditions(MACGrid grid):
 #cpdef void build_sparse(MACGrid grid):
 
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
-    cdef int x, y, z, iter
+    cdef int x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef double h = grid.cell_size
-    cdef cnp.ndarray divergence = np.zeros((nx, ny, nz), dtype=np.float64)
-    grid.max_vel = 0
-    # Compute divergence of velocity field
+    cdef double max_vel = 0
+    cdef cnp.ndarray rhs
+    cdef int info = 0
+
+    # Build the sparse matrix for the pressure equation
+    cdef object A = grid.build_sparse()
+
+    # Calculate divergence
     for x in range(1, nx-1):
         for y in range(1, ny-1):
             for z in range(1, nz-1):
-                divergence[x, y, z] = ((grid.u[x+1, y, z] - grid.u[x, y, z]) +
-                    (grid.v[x, y+1, z] - grid.v[x, y, z]) +
-                    (grid.w[x, y, z+1] - grid.w[x, y, z])) / h
-                grid.max_vel = max(grid.max_vel,max_u(grid,x,y,z))#Might as well calculate this now
-    # Gauss-Seidel iteration
-    for iter in range(iterations):
-        for x in range(1, nx-1):
-            for y in range(1, ny-1):
-                for z in range(1, nz-1):
-                    grid.pressure[x, y, z] = (grid.pressure[x+1, y, z] + grid.pressure[x-1, y, z] +
-                        grid.pressure[x, y+1, z] + grid.pressure[x, y-1, z] +
-                        grid.pressure[x, y, z+1] + grid.pressure[x, y, z-1] -
-                        h * h * divergence[x, y, z]) / 6.0
-        apply_pressure_boundary_conditions(grid)
+                u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
+                v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
+                w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
+
+                # Update divergence
+                grid.divergence[x, y, z] = (u_diff + v_diff + w_diff) / h
+
+                # Update max velocity
+                max_vel = max(max_vel, get_vel(grid, x, y, z))
+
+    grid.max_vel = max_vel
+
+    # Prepare the right-hand side (rhs) for the pressure equation
+    rhs = np.nan_to_num(grid.divergence.flatten())
+
+    # Solve the pressure equation using the Conjugate Gradient method
+    grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(), maxiter=iterations)
+
+    # Reshape pressure back to 3D
+    grid.pressure = grid.pressure.reshape((nx, ny, nz))
+
+    # Check solver information
+    print("CG solver finished with info code:", info)
+    print("Resulting pressure min:", np.min(grid.pressure), "max:", np.max(grid.pressure))
+
 
 # -- Pressure Projection --
 
@@ -359,19 +382,24 @@ cpdef void cy_project(MACGrid grid):
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef double h = grid.cell_size
-    for x in range(1, nx):
-        for y in range(ny):
-            for z in range(nz):
-                grid.u[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x-1, y, z]) / h
-    for x in range(nx):
-        for y in range(1, ny):
-            for z in range(nz):
-                grid.v[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y-1, z]) / h
     for x in range(nx):
         for y in range(ny):
-            for z in range(1, nz):
-                grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
+            for z in range(nz):
+                if x > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x-1, y, z] == 0:
+                    grid.u[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x-1, y, z]) / h
+                if y > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x, y-1, z] == 0:
+                    grid.v[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y-1, z]) / h
+                if z > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x, y, z-1] == 0:
+                    grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
+
     apply_velocity_boundary_conditions(grid)
+
+    # Debugging output to check velocity updates
+    print("Velocity after pressure projection:")
+    print("Min u:", np.min(grid.u), "Max u:", np.max(grid.u))
+    print("Min v:", np.min(grid.v), "Max v:", np.max(grid.v))
+    print("Min w:", np.min(grid.w), "Max w:", np.max(grid.w))
+
 
 # -- Final Advection --
 
@@ -411,6 +439,10 @@ cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
     cdef double t = 0.0
     cdef double tframe = 1.0
     cdef double dt
+    cdef cnp.npy_intp nx = grid.grid_size[0]
+    cdef cnp.npy_intp ny = grid.grid_size[1]
+    cdef cnp.npy_intp nz = grid.grid_size[2]
+    grid.divergence = np.zeros((nx, ny, nz), dtype=np.float64)
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
         cy_predict_wind(grid, 1, wind_speed, wind_acceleration, damping_factor)
@@ -418,5 +450,6 @@ cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
         cy_collide(grid, bvh_tree, dt, damping_factor, friction) 
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
+        cy_advect_velocities(grid, dt)
         cy_advect_density(grid, dt)
         t += dt

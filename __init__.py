@@ -135,7 +135,6 @@ class WindSimPanel(bpy.types.Panel):
         layout.prop(scene, "wind_simulation_damping_factor") 
         layout.prop(scene, "wind_simulation_particle_spread")
         layout.prop(scene, "wind_simulation_num_frames")
-        layout.prop(scene, "wind_simulation_dt")
         layout.operator("object.wind_sim_operator", text="Run Simulation")
 
 def register():

@@ -5,6 +5,8 @@ import numpy as np
 cimport numpy as cnp
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+from scipy.sparse.linalg import cg 
+from scipy.sparse import coo_matrix
 
 cdef class MACGrid:
 
@@ -19,6 +21,7 @@ cdef class MACGrid:
         self.v = np.zeros((nx, ny+1, nz), dtype=np.float64)
         self.w = np.zeros((nx, ny, nz+1), dtype=np.float64)
         self.pressure = np.zeros((nx, ny, nz), dtype=np.float64)
+        self.divergence =  np.zeros((nx, ny, nz), dtype=np.float64)
         self.max_vel = 0
         self.density = np.zeros((nx, ny, nz), dtype=np.float64)
         self.solid_mask = np.zeros((nx, ny, nz), dtype=np.float32)
@@ -66,5 +69,62 @@ cdef class MACGrid:
             if i < positions.shape[0]:
                 particle.location = Vector(positions[i])
                 particle.keyframe_insert(data_path="location", frame=frame)
+      
+    cpdef int index(self, i, j, k, nx, ny, nz):
+            return i + j * nx + k * nx * ny
 
+    cpdef object build_sparse(self):
+        cdef cnp.npy_intp nx, ny, nz
+        cdef list row = []
+        cdef list col = []
+        cdef list data = []
+        cdef object laplacian
+        nx, ny, nz = self.grid_size
+        n_points = nx * ny * nz
+        for x in range(nx):
+            for y in range(ny):
+                for z in range(nz):
+                    if self.solid_mask[x, y, z] == 1:
+                        continue 
+                    p = self.index(x, y, z, nx, ny, nz)
+                    row.append(p)
+                    col.append(p)
+                    data.append(6)  # Center coefficient
+                    
+                    # Debug print to check for NaN values
+                    if np.isnan(row[-1]) or np.isnan(col[-1]) or np.isnan(data[-1]):
+                        print(f"NaN found in sparse matrix at index ({x}, {y}, {z}): row={row[-1]}, col={col[-1]}, data={data[-1]}")
+
+                    # Check each neighbor and add connections if not solid
+                    if x > 0 and self.solid_mask[x - 1, y, z] == 0:
+                        row.append(p)
+                        col.append(self.index(x - 1, y, z, nx, ny, nz))
+                        data.append(-1)
+                    if x < nx - 1 and self.solid_mask[x + 1, y, z] == 0:
+                        row.append(p)
+                        col.append(self.index(x + 1, y, z, nx, ny, nz))
+                        data.append(-1)
+                    if y > 0 and self.solid_mask[x, y - 1, z] == 0:
+                        row.append(p)
+                        col.append(self.index(x, y - 1, z, nx, ny, nz))
+                        data.append(-1)
+                    if y < ny - 1 and self.solid_mask[x, y + 1, z] == 0:
+                        row.append(p)
+                        col.append(self.index(x, y + 1, z, nx, ny, nz))
+                        data.append(-1)
+                    if z > 0 and self.solid_mask[x, y, z - 1] == 0:
+                        row.append(p)
+                        col.append(self.index(x, y, z - 1, nx, ny, nz))
+                        data.append(-1)
+                    if z < nz - 1 and self.solid_mask[x, y, z + 1] == 0:
+                        row.append(p)
+                        col.append(self.index(x, y, z + 1, nx, ny, nz))
+                        data.append(-1)
+
+        # Create sparse matrix and check for NaNs
+        laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
+        if np.isnan(laplacian.data).any():
+            raise ValueError("NaN detected in sparse matrix laplacian data")
+
+        return laplacian.tocsr()
         
