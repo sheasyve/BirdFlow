@@ -141,7 +141,7 @@ cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, dou
 # -- Calculate DT
 
 cpdef double calc_dt(MACGrid grid, double initial_dt, double cell_size, cnp.ndarray wind_acceleration):
-    cdef double cfl = 0.3
+    cdef double cfl = 0.2
     cdef double force = np.linalg.norm(wind_acceleration)
     cdef double umax = grid.max_vel + (cell_size * force) ** 0.5
     return cfl * (cell_size / umax) if umax != 0 else cell_size
