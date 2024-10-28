@@ -40,16 +40,14 @@ class WindSim(bpy.types.Operator):
             obj = context.active_object
             if obj and obj.type == 'MESH':
                 num_frames = scene.wind_simulation_num_frames
-                grid_size_x = scene.wind_simulation_grid_size_x
-                grid_size_y = scene.wind_simulation_grid_size_y
-                grid_size_z = scene.wind_simulation_grid_size_z
-                grid_size = (grid_size_x, grid_size_y, grid_size_z)
+                size = scene.wind_simulation_grid_size_x
+                grid_size = (grid_size, grid_size, grid_size)
                 wind_speed_x = scene.wind_simulation_wind_speed_x
                 cell_size = scene.wind_simulation_particle_spread
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
                 particle_spread = cell_size
-                num_particles = int(grid_size_x * grid_size_y * grid_size_z)
+                num_particles = int(size * size * size)
                 particle_positions = np.random.rand(num_particles, 3) * particle_spread
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
@@ -128,9 +126,7 @@ class WindSimPanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         layout.label(text="Simulator Settings:")
-        layout.prop(scene, "wind_simulation_grid_size_x")
-        layout.prop(scene, "wind_simulation_grid_size_y")
-        layout.prop(scene, "wind_simulation_grid_size_z")
+        layout.prop(scene, "wind_simulation_grid_size")
         layout.prop(scene, "wind_simulation_wind_speed_x")
         layout.prop(scene, "wind_simulation_wind_acceleration_x")
         layout.prop(scene, "wind_simulation_damping_factor") 
@@ -141,23 +137,9 @@ class WindSimPanel(bpy.types.Panel):
 def register():
     bpy.utils.register_class(WindSim)
     bpy.utils.register_class(WindSimPanel)
-    bpy.types.Scene.wind_simulation_grid_size_x = bpy.props.IntProperty(
-        name="Grid Size X",
-        description="Grid size in X direction",
-        default=5,
-        min=2,
-        max=50
-    )
-    bpy.types.Scene.wind_simulation_grid_size_y = bpy.props.IntProperty(
-        name="Grid Size Y",
-        description="Grid size in Y direction",
-        default=5,
-        min=2,
-        max=50
-    )
-    bpy.types.Scene.wind_simulation_grid_size_z = bpy.props.IntProperty(
-        name="Grid Size Z",
-        description="Grid size in Z direction",
+    bpy.types.Scene.wind_simulation_grid_size = bpy.props.IntProperty(
+        name="Grid Size",
+        description="Grid size",
         default=5,
         min=2,
         max=50
@@ -201,9 +183,7 @@ def register():
 def unregister():
     bpy.utils.unregister_class(WindSim)
     bpy.utils.unregister_class(WindSimPanel)
-    del bpy.types.Scene.wind_simulation_grid_size_x
-    del bpy.types.Scene.wind_simulation_grid_size_y
-    del bpy.types.Scene.wind_simulation_grid_size_z
+    del bpy.types.Scene.wind_simulation_grid_size
     del bpy.types.Scene.wind_simulation_wind_speed_x
     del bpy.types.Scene.wind_simulation_wind_acceleration_x
     del bpy.types.Scene.wind_simulation_particle_spread
