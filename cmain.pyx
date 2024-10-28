@@ -141,12 +141,19 @@ cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, dou
 # -- Calculate DT
 
 cpdef double calc_dt(MACGrid grid, double initial_dt, double cell_size, cnp.ndarray wind_acceleration):
-    cdef double cfl = 0.5
+    cdef double cfl = 0.3
     cdef double force = np.linalg.norm(wind_acceleration)
     cdef double umax = grid.max_vel + (cell_size * force) ** 0.5
     return cfl * (cell_size / umax) if umax != 0 else cell_size
 
 # -- Apply wind force --
+
+cpdef void initialize_velocity(MACGrid grid, double noise_magnitude=0.01):
+    cdef cnp.npy_intp nx, ny, nz
+    nx, ny, nz = grid.grid_size
+    grid.u += (np.random.rand(nx + 1, ny, nz) - 0.5) * noise_magnitude
+    grid.v += (np.random.rand(nx, ny + 1, nz) - 0.5) * noise_magnitude
+    grid.w += (np.random.rand(nx, ny, nz + 1) - 0.5) * noise_magnitude
 
 cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
     cdef cnp.npy_intp x, y, z
@@ -174,22 +181,13 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
                 if grid.w[x, y, z] < wind_speed[2]:
                     grid.w[x, y, z] += wind_acceleration[2] * dt
                 grid.w[x, y, z] = max(min(grid.w[x, y, z], wind_speed[2]), -wind_speed[2])
-    print("U-velocity statistics after wind prediction:")
-    print("Min:", np.min(grid.u), "Max:", np.max(grid.u))
-
-    print("V-velocity statistics after wind prediction:")
-    print("Min:", np.min(grid.v), "Max:", np.max(grid.v))
-
-    print("W-velocity statistics after wind prediction:")
-    print("Min:", np.min(grid.w), "Max:", np.max(grid.w))
-
 
 # -- Collisions --
 
 cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
     cdef cnp.ndarray vel = interp_u_at_p(grid, location)
     cdef cnp.ndarray reflected_u, tangent_u
-    cdef double damping = 0.8
+    cdef double damping = 0.95
     reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
     tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
     reflected_u -= friction * tangent_u
@@ -224,65 +222,65 @@ cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt, double damping_f
 
 cpdef void cy_advect_velocities(MACGrid grid, double dt):
     # Apply new velocities from collision with RK3 (Runge Kutta Order-3) method
-    cdef cnp.ndarray uk1 = np.zeros_like(grid.u)
-    cdef cnp.ndarray vk1 = np.zeros_like(grid.v)
-    cdef cnp.ndarray wk1 = np.zeros_like(grid.w)
-    cdef cnp.ndarray uk2 = np.zeros_like(grid.u)
-    cdef cnp.ndarray vk2 = np.zeros_like(grid.v)
-    cdef cnp.ndarray wk2 = np.zeros_like(grid.w)
-    cdef cnp.ndarray uk3 = np.zeros_like(grid.u)
-    cdef cnp.ndarray vk3 = np.zeros_like(grid.v)
-    cdef cnp.ndarray wk3 = np.zeros_like(grid.w)
-    cdef cnp.ndarray new_u = np.zeros_like(grid.u)
-    cdef cnp.ndarray new_v = np.zeros_like(grid.v)
-    cdef cnp.ndarray new_w = np.zeros_like(grid.w)
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
-    cdef cnp.npy_intp x, y, z
-    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray uk1, vk1, wk1, uk2, vk2, wk2, uk3, vk3, wk3
+    cdef cnp.ndarray new_u, new_v, new_w
+    cdef cnp.npy_intp nx, ny, nz, x, y, z
+    cdef cnp.ndarray pos, temp_pos
     cdef double cell_size = grid.cell_size
-    for x in range(nx+1):
+    nx, ny, nz = grid.grid_size
+    uk1, vk1, wk1 = np.zeros_like(grid.u), np.zeros_like(grid.v), np.zeros_like(grid.w)
+    uk2, vk2, wk2 = np.zeros_like(grid.u), np.zeros_like(grid.v), np.zeros_like(grid.w)
+    uk3, vk3, wk3 = np.zeros_like(grid.u), np.zeros_like(grid.v), np.zeros_like(grid.w)
+    new_u, new_v, new_w = np.zeros_like(grid.u), np.zeros_like(grid.v), np.zeros_like(grid.w)
+    pos, temp_pos = np.zeros(3, dtype=np.float64), np.zeros(3, dtype=np.float64)
+    for x in range(nx + 1):
         for y in range(ny):
             for z in range(nz):
                 pos[0] = x * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = (z + 0.5) * cell_size
                 uk1[x, y, z] = interp_component_u_at_p(grid.u, pos, Component.U, grid)
-                temp_pos[:] = pos + .5 * dt * uk1[x, y, z]
+                temp_pos[:] = pos + 0.5 * dt * uk1[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 uk2[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
-                temp_pos[:] = pos + .75 * dt * uk2[x, y, z]
+                temp_pos[:] = pos + 0.75 * dt * uk2[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
-                new_u[x, y, z] = grid.u[x, y, z] + (2/9) * dt * uk1[x, y, z] + (3/9) * dt * uk2[x, y, z] + (4/9) * dt * uk3[x, y, z]
+                new_u[x, y, z] = grid.u[x, y, z] + (2 / 9) * dt * uk1[x, y, z] + (3 / 9) * dt * uk2[x, y, z] + (4 / 9) * dt * uk3[x, y, z]
     for x in range(nx):
-        for y in range(ny+1):
+        for y in range(ny + 1):
             for z in range(nz):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = y * cell_size
                 pos[2] = (z + 0.5) * cell_size
                 vk1[x, y, z] = interp_component_u_at_p(grid.v, pos, Component.V, grid)
-                temp_pos[:] = pos + .5 * dt * vk1[x, y, z]
+                temp_pos[:] = pos + 0.5 * dt * vk1[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 vk2[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
-                temp_pos[:] = pos + .75 * dt * vk2[x, y, z]
+                temp_pos[:] = pos + 0.75 * dt * vk2[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 vk3[x, y, z] = interp_component_u_at_p(grid.v, temp_pos, Component.V, grid)
-                new_v[x, y, z] = grid.v[x, y, z] + (2/9) * dt * vk1[x, y, z] + (3/9) * dt * vk2[x, y, z] + (4/9) * dt * vk3[x, y, z]
+                new_v[x, y, z] = grid.v[x, y, z] + (2 / 9) * dt * vk1[x, y, z] + (3 / 9) * dt * vk2[x, y, z] + (4 / 9) * dt * vk3[x, y, z]
     for x in range(nx):
         for y in range(ny):
-            for z in range(nz+1):
+            for z in range(nz + 1):
                 pos[0] = (x + 0.5) * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = z * cell_size
                 wk1[x, y, z] = interp_component_u_at_p(grid.w, pos, Component.W, grid)
-                temp_pos[:] = pos + .5 * dt * wk1[x, y, z]
+                temp_pos[:] = pos + 0.5 * dt * wk1[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 wk2[x, y, z] = interp_component_u_at_p(grid.w, temp_pos, Component.W, grid)
-                temp_pos[:] = pos + .75 * dt * wk2[x, y, z]
+                temp_pos[:] = pos + 0.75 * dt * wk2[x, y, z]
+                temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 wk3[x, y, z] = interp_component_u_at_p(grid.w, temp_pos, Component.W, grid)
-                new_w[x, y, z] = grid.w[x, y, z] + (2/9) * dt * wk1[x, y, z] + (3/9) * dt * wk2[x, y, z] + (4/9) * dt * wk3[x, y, z]
+                new_w[x, y, z] = grid.w[x, y, z] + (2 / 9) * dt * wk1[x, y, z] + (3 / 9) * dt * wk2[x, y, z] + (4 / 9) * dt * wk3[x, y, z]
+
     grid.u[:, :, :] = new_u
     grid.v[:, :, :] = new_v
     grid.w[:, :, :] = new_w
-    apply_velocity_boundary_conditions(grid)
+    v_boundary_conditions(grid)
+
 
 # -- Pressure Solve --
 
@@ -293,7 +291,7 @@ cpdef double get_vel(MACGrid grid, int x, int y, int z):
     cdef double w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
     return (u**2+v**2+w**2)**0.5
 
-cpdef void apply_pressure_boundary_conditions(MACGrid grid):
+cpdef void p_boundary_conditions(MACGrid grid):
     # Neumann boundary conditions (zero gradient at boundaries)
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
@@ -311,7 +309,7 @@ cpdef void apply_pressure_boundary_conditions(MACGrid grid):
             grid.pressure[x, y, 0] = grid.pressure[x, y, 1]
             grid.pressure[x, y, nz-1] = grid.pressure[x, y, nz-2]
 
-cpdef void apply_velocity_boundary_conditions(MACGrid grid):
+cpdef void v_boundary_conditions(MACGrid grid):
     # No-slip condition at boundaries
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
@@ -329,8 +327,6 @@ cpdef void apply_velocity_boundary_conditions(MACGrid grid):
             grid.w[x, y, 0] = 0.0
             grid.w[x, y, nz] = 0.0  
 
-#cpdef void build_sparse(MACGrid grid):
-
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef int x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -340,39 +336,19 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef double max_vel = 0
     cdef cnp.ndarray rhs
     cdef int info = 0
-
-    # Build the sparse matrix for the pressure equation
     cdef object A = grid.build_sparse()
-
-    # Calculate divergence
     for x in range(1, nx-1):
         for y in range(1, ny-1):
             for z in range(1, nz-1):
                 u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
                 v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
                 w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
-
-                # Update divergence
                 grid.divergence[x, y, z] = (u_diff + v_diff + w_diff) / h
-
-                # Update max velocity
                 max_vel = max(max_vel, get_vel(grid, x, y, z))
-
     grid.max_vel = max_vel
-
-    # Prepare the right-hand side (rhs) for the pressure equation
     rhs = np.nan_to_num(grid.divergence.flatten())
-
-    # Solve the pressure equation using the Conjugate Gradient method
     grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(), maxiter=iterations)
-
-    # Reshape pressure back to 3D
     grid.pressure = grid.pressure.reshape((nx, ny, nz))
-
-    # Check solver information
-    print("CG solver finished with info code:", info)
-    print("Resulting pressure min:", np.min(grid.pressure), "max:", np.max(grid.pressure))
-
 
 # -- Pressure Projection --
 
@@ -391,15 +367,7 @@ cpdef void cy_project(MACGrid grid):
                     grid.v[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y-1, z]) / h
                 if z > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x, y, z-1] == 0:
                     grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
-
-    apply_velocity_boundary_conditions(grid)
-
-    # Debugging output to check velocity updates
-    print("Velocity after pressure projection:")
-    print("Min u:", np.min(grid.u), "Max u:", np.max(grid.u))
-    print("Min v:", np.min(grid.v), "Max v:", np.max(grid.v))
-    print("Min w:", np.min(grid.w), "Max w:", np.max(grid.w))
-
+    v_boundary_conditions(grid)
 
 # -- Final Advection --
 

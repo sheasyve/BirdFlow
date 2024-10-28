@@ -33,7 +33,7 @@ class WindSim(bpy.types.Operator):
         bvh_tree = BVHTree.FromBMesh(bm)
         bm.free()
         return bvh_tree
-
+    
     def execute(self, context):
         try:
             scene = context.scene
@@ -110,6 +110,7 @@ class WindSim(bpy.types.Operator):
         self.report({'INFO'}, "Running Simulation.")
         dt = 1.
         grid.get_mask(bvh_tree)
+        initialize_velocity(grid,.01)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
             cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, 
