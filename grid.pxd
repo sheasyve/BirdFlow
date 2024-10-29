@@ -22,7 +22,6 @@ cdef class MACGrid:
     cpdef cnp.ndarray get_mask(self, object bvh_tree)
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)
     cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
-    cpdef void update_particle_positions(self, object particle_objects, int frame)
     cpdef object build_sparse(self)
     
 '''For a grid of nx, ny, nz cells, we store the pressure in a

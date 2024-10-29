@@ -39,26 +39,31 @@ class WindSim(bpy.types.Operator):
             scene = context.scene
             obj = context.active_object
             if obj and obj.type == 'MESH':
+                # Simulation parameters
                 num_frames = scene.wind_simulation_num_frames
                 size = scene.wind_simulation_grid_size
                 grid_size = (size, size, size)
-                wind_speed_x = scene.wind_simulation_wind_speed_x
+                wind_speed_x = 50
                 cell_size = scene.wind_simulation_particle_spread
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
                 particle_spread = cell_size
                 num_particles = int(size * size * size)
-                particle_positions = np.random.rand(num_particles, 3) * particle_spread
+
+                # Scene frame setup
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
+
+                # Wind and grid configuration
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
                 wind_acceleration = np.array([wind_acceleration_x, 0.0, 0.0], dtype=np.float64)
                 bvh = self.get_bvh_tree(obj)
-                self.run_simulation(MACGrid(grid_size, cell_size), 
-                    bvh, num_frames,  
-                    self.make_particles(self.create_particle_collection(), particle_positions),
-                    wind_speed, wind_acceleration,
-                    damping_factor, cell_size)
+                grid = MACGrid(grid_size, cell_size)
+
+                # Create particle collection and initial particles
+                particle_collection = self.create_particle_collection()
+                self.run_simulation(grid, bvh, num_frames, particle_collection,
+                                    wind_speed, wind_acceleration, damping_factor, cell_size, grid_size)
                 self.report({'INFO'}, "Simulation finished.")
                 return {'FINISHED'}
             else:
@@ -68,6 +73,7 @@ class WindSim(bpy.types.Operator):
             self.report({'ERROR'}, f"Simulation failed: {e}")
             print(f"Error during simulation: {e}")
             return {'CANCELLED'}
+
 
     def create_mesh(self):
         mesh = bpy.data.meshes.get("ParticleMesh")
@@ -92,28 +98,52 @@ class WindSim(bpy.types.Operator):
             bpy.context.scene.collection.children.link(pc)
         return pc
 
-    def make_particles(self, particle_collection, positions):
+    def add_particles(self, particle_collection, n, cell_size, grid_yz_bounds):
         mesh = self.create_mesh()
         particle_objects = []
-        for i, pos in enumerate(positions):
-            particle = bpy.data.objects.new(f"Particle_{i}", mesh)
-            particle.location = pos
+        for i in range(n):
+            y = np.random.uniform(grid_yz_bounds[0], grid_yz_bounds[1])
+            z = np.random.uniform(grid_yz_bounds[2], grid_yz_bounds[3])
+            position = Vector((0.5, y, z))
+            particle = bpy.data.objects.new(f"Particle_{len(bpy.data.objects)}", mesh)
+            particle.location = position
             particle_collection.objects.link(particle)
+            bpy.context.scene.collection.objects.link(particle)  # Ensure particle is added to scene collection
             particle_objects.append(particle)
         return particle_objects
 
-    def run_simulation(self, grid, bvh_tree, num_frames,
-                       particle_objects, wind_speed, wind_acceleration, 
-                       damping_factor, cell_size):
+    def remove_particles(self, particle_collection, grid_boundaries):
+        min_x, max_x, min_y, max_y, min_z, max_z = grid_boundaries
+        for particle in list(particle_collection.objects):
+            x, y, z = particle.location
+            if not (min_x <= x <= max_x and min_y <= y <= max_y and min_z <= z <= max_z):
+                particle_collection.objects.unlink(particle)  # Remove from collection
+                bpy.data.objects.remove(particle)  # Remove object
+
+    def run_simulation(self, grid, bvh_tree, num_frames, particle_collection,
+                   wind_speed, wind_acceleration, damping_factor, cell_size, grid_size):
         self.report({'INFO'}, "Running Simulation.")
-        dt = 1.
+        dt = 1.0
         grid.get_mask(bvh_tree)
-        initialize_velocity(grid,.01)
+        initialize_velocity(grid, 0.01)#type: ignore 
+        min_bound, max_bound = 0, int(grid_size[0] * cell_size)
+        grid_boundaries = (min_bound, max_bound, min_bound, max_bound, min_bound, max_bound)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, 
-                        wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION) # type: ignore
-            grid.update_particle_positions(particle_objects, frame)
+            self.add_particles(particle_collection, n=10, cell_size=cell_size,
+                               grid_yz_bounds=(min_bound, max_bound, min_bound, max_bound))
+            particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0] 
+                                           for p in particle_collection.objects])
+            grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
+            particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
+            #particle_positions = cy_collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
+            #particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
+            for i, particle in enumerate(particle_collection.objects):
+                particle.location = Vector(particle_positions[i][:3])
+                particle.keyframe_insert(data_path="location", frame=frame)
+            #self.remove_particles(particle_collection, grid_boundaries)
+            particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0]
+                                           for p in particle_collection.objects])
 
 class WindSimPanel(bpy.types.Panel):
     bl_label = "Wind Simulator"
@@ -175,7 +205,7 @@ def register():
     bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
-        default=100,
+        default=10,
         min=1,
         max=1000
     )

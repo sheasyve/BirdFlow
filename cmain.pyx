@@ -155,6 +155,8 @@ cpdef void initialize_velocity(MACGrid grid, double noise_magnitude=0.01):
     grid.v += (np.random.rand(nx, ny + 1, nz) - 0.5) * noise_magnitude
     grid.w += (np.random.rand(nx, ny, nz + 1) - 0.5) * noise_magnitude
 
+# -- Velocity Advection --
+
 cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
     cdef cnp.npy_intp x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
@@ -182,44 +184,6 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
                     grid.w[x, y, z] += wind_acceleration[2] * dt
                 grid.w[x, y, z] = max(min(grid.w[x, y, z], wind_speed[2]), -wind_speed[2])
 
-# -- Collisions --
-
-cpdef void redirect_velocity(MACGrid grid, cnp.ndarray location, cnp.ndarray normal, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, double damping_factor, double friction):
-    cdef cnp.ndarray vel = interp_u_at_p(grid, location)
-    cdef cnp.ndarray reflected_u, tangent_u
-    cdef double damping = 0.9
-    reflected_u = (vel - 2 * np.dot(vel, normal) * normal) * damping
-    tangent_u = (reflected_u - np.dot(reflected_u, normal) * normal)
-    reflected_u -= friction * tangent_u
-    grid.set_face_velocities(x, y, z, reflected_u)
-
-cpdef void cy_collide(MACGrid grid, object bvh_tree, double dt, double damping_factor, double friction):
-    # Perform collision check and redirect
-    cdef cnp.npy_intp x, y, z
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
-    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
-    cdef double cell_size = grid.cell_size
-    cdef object location, normal, distance
-    for x in range(nx):
-        for y in range(ny):
-            for z in range(nz):
-                pos[:] = grid.get_cell_position(x, y, z)
-                vel[:] = interp_u_at_p(grid, pos)
-                if np.linalg.norm(vel) == 0:
-                    continue
-                origin = Vector(pos - vel * dt)
-                direction = Vector(vel / np.linalg.norm(vel))
-                location, normal, _, distance = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
-                if location is not None and distance <= np.linalg.norm(vel) * dt: #Collision
-                    new_pos = pos + (np.array(normal) * (np.linalg.norm(vel) * dt - distance))
-                    grid.position[x, y, z, :] = new_pos
-                    redirect_velocity(grid, np.array(location, dtype=np.float64), np.array(normal, dtype=np.float64), x, y, z, damping_factor, friction)
-
-# -- Velocity Advection --
-
 cpdef void cy_advect_velocities(MACGrid grid, double dt):
     # Apply new velocities from collision with RK3 (Runge Kutta Order-3) method
     cdef cnp.ndarray uk1, vk1, wk1, uk2, vk2, wk2, uk3, vk3, wk3
@@ -239,6 +203,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 pos[0] = x * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = (z + 0.5) * cell_size
+                print(pos)
                 uk1[x, y, z] = interp_component_u_at_p(grid.u, pos, Component.U, grid)
                 temp_pos[:] = pos + 0.5 * dt * uk1[x, y, z]
                 temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
@@ -247,6 +212,7 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
                 new_u[x, y, z] = grid.u[x, y, z] + (2 / 9) * dt * uk1[x, y, z] + (3 / 9) * dt * uk2[x, y, z] + (4 / 9) * dt * uk3[x, y, z]
+                print(new_u[x ,y ,z])
     for x in range(nx):
         for y in range(ny + 1):
             for z in range(nz):
@@ -347,6 +313,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     rhs = np.nan_to_num(grid.divergence.flatten(order='F'))
     grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(order='F'), maxiter=iterations)
     grid.pressure = grid.pressure.reshape((nx, ny, nz),order='F')
+    p_boundary_conditions(grid)
 
 # -- Pressure Projection --
 
@@ -367,7 +334,7 @@ cpdef void cy_project(MACGrid grid):
                     grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
     v_boundary_conditions(grid)
 
-# -- Final Advection --
+# -- Density Advection --
 
 cpdef void cy_advect_density(MACGrid grid, double dt):
     # Advect density scalar with RK3 method
@@ -394,12 +361,68 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
                 k3[:] = interp_u_at_p(grid, temp_pos)
                 temp_pos[:] = pos + (2/9) * dt * k1 + (3/9) * dt * k2 + (4/9) * dt * k3
                 new_density[x, y, z] = interp_scalar_u_at_p(grid.density, temp_pos, cell_size)
-                grid.position[x, y, z, :] = temp_pos
     grid.density[:, :, :] = new_density
+
+# -- Collisions --
+
+cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, double damping_factor, double friction):
+    # Reflect velocity based on collision normal and apply damping and friction
+    cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
+    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * damping_factor
+    tangent_u[:] = reflected_u - np.dot(reflected_u, normal) * normal
+    reflected_u[:] -= friction * tangent_u
+    vel[:] = reflected_u
+
+cpdef cnp.ndarray cy_collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
+    cdef int p
+    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
+    cdef object location, normal, distance
+    
+    for p in range(particle_objects.shape[0]):
+        pos[:] = particle_objects[p, :3]
+        vel[:] = particle_objects[p, 3:6]
+        if np.linalg.norm(vel) == 0:
+            continue 
+        origin = Vector(pos - vel * dt)
+        direction = Vector(vel / (np.linalg.norm(vel) + .001))
+        result = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
+        if result is not None:
+            location, normal, index, distance = result  # Unpack the ray_cast result tuple
+            if distance is not None and distance > 0 and distance <= np.linalg.norm(vel) * dt:
+                redirect_particle_velocity(vel, np.array(normal, dtype=np.float64), damping_factor, friction)
+                particle_objects[p, 3:6] = vel
+    return particle_objects
+
+# -- Particle Advection
+
+cpdef cnp.ndarray advect_particles(MACGrid grid, cnp.ndarray particle_objects, double dt, int update_p):
+    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k1 = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k2 = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray k3 = np.zeros(3, dtype=np.float64)
+    cdef double cell_size = grid.cell_size
+    cdef cnp.npy_intp nx, ny, nz
+    nx, ny, nz = grid.grid_size
+    for p in range(particle_objects.shape[0]):
+        pos[:] = particle_objects[p, :3]
+        k1[:] = interp_u_at_p(grid, pos)
+        temp_pos[:] = pos + 0.5 * dt * k1
+        k2[:] = interp_u_at_p(grid, temp_pos)
+        temp_pos[:] = pos + 0.75 * dt * k2
+        k3[:] = interp_u_at_p(grid, temp_pos)
+        new_vel = (2 / 9) * k1 + (3 / 9) * k2 + (4 / 9) * k3
+        particle_objects[p, 3:6] = new_vel  
+        pos += new_vel * dt
+        if update_p == 1:
+            particle_objects[p, :3] = pos  
+    return particle_objects
 
 # -- Simulation main --
 
-cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
+cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
         object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, 
         double damping_factor, double cell_size, double friction):
     cdef double t = 0.0
@@ -411,11 +434,11 @@ cpdef void cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
     grid.divergence = np.zeros((nx, ny, nz), dtype=np.float64)
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
-        cy_predict_wind(grid, 1, wind_speed, wind_acceleration, damping_factor)
-        cy_advect_velocities(grid, dt)
-        cy_collide(grid, bvh_tree, dt, damping_factor, friction) 
+        cy_predict_wind(grid, dt, wind_speed, wind_acceleration, damping_factor)
+        cy_advect_velocities(grid, dt) 
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
-        cy_advect_velocities(grid, dt)
+        cy_advect_velocities(grid, dt)  
         cy_advect_density(grid, dt)
         t += dt
+    return grid

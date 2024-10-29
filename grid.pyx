@@ -63,13 +63,6 @@ cdef class MACGrid:
         if 0 <= z - 1 < nz + 1:
             self.w[x, y, z - 1] = vel[2]
 
-    cpdef void update_particle_positions(self, object particle_objects, int frame):
-        positions = self.position.reshape(-1, 3)
-        for i, particle in enumerate(particle_objects):
-            if i < positions.shape[0]:
-                particle.location = Vector(positions[i])
-                particle.keyframe_insert(data_path="location", frame=frame)
-      
     cpdef int index(self, i, j, k, nx, ny, nz):
             return i + j * nx + k * nx * ny
 
