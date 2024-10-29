@@ -233,7 +233,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
 # -- Pressure Solve --
 
 cpdef double get_vel(MACGrid grid, int x, int y, int z):
-    # Adjusted to prevent negative indices
     cdef double u, v, w
     if x > 0:
         u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
@@ -250,7 +249,7 @@ cpdef double get_vel(MACGrid grid, int x, int y, int z):
     return (u**2 + v**2 + w**2)**0.5
 
 cpdef void p_boundary_conditions(MACGrid grid):
-    # Neumann boundary conditions (zero gradient at boundaries)
+    # Neumann boundary conditions
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
@@ -268,7 +267,7 @@ cpdef void p_boundary_conditions(MACGrid grid):
             grid.pressure[x, y, nz-1] = grid.pressure[x, y, nz-2]
 
 cpdef void v_boundary_conditions(MACGrid grid):
-    # No-slip condition at boundaries
+    # No-slip at boundaries
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
@@ -312,7 +311,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
         rhs[fixed_p] = 0
     pressure_solution, info = cg(A, rhs, maxiter=iterations)
     if info != 0:
-        print(f"Warning: Conjugate gradient solver did not converge (info={info})")
+        print(f"Warning: Did not converge (info={info})")
     grid.pressure[:, :, :] = 0.0  
     for p, (x, y, z) in sys_idx_to_cell.items():
         grid.pressure[x, y, z] = pressure_solution[p]
@@ -371,13 +370,13 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
                 new_density[x, y, z] = interp_scalar_u_at_p(grid.density, temp_pos, cell_size)
     grid.density[:, :, :] = new_density
 
-# -- Collisions --
+# -- Collisions for Particles --
 
 cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, double damping_factor, double friction):
     # Reflect velocity based on collision normal and apply damping and friction
     cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
-    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .8
+    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .99
     tangent_u[:] = reflected_u - np.dot(reflected_u, normal) * normal
     reflected_u[:] -= friction * tangent_u
     vel[:] = reflected_u
@@ -428,19 +427,6 @@ cpdef cnp.ndarray advect_particles(MACGrid grid, cnp.ndarray particle_objects, d
         if update_p == 1:
             particle_objects[p, :3] = pos  
     return particle_objects
-
-cpdef void particle_density(MACGrid grid, cnp.ndarray particle_objects, double dt):
-    cdef int p
-    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
-    cdef cnp.ndarray pressure_gradient = np.zeros(3, dtype=np.float64)
-    for p in range(particle_objects.shape[0]):
-        pos[:] = particle_objects[p, :3]
-        # Compute pressure gradient at particle position
-        pressure_gradient[0] = (interp_scalar_u_at_p(grid.pressure, pos + [grid.cell_size, 0, 0], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [grid.cell_size, 0, 0], grid.cell_size)) / (2 * grid.cell_size)
-        pressure_gradient[1] = (interp_scalar_u_at_p(grid.pressure, pos + [0, grid.cell_size, 0], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [0, grid.cell_size, 0], grid.cell_size)) / (2 * grid.cell_size)
-        pressure_gradient[2] = (interp_scalar_u_at_p(grid.pressure, pos + [0, 0, grid.cell_size], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [0, 0, grid.cell_size], grid.cell_size)) / (2 * grid.cell_size)
-        # Apply pressure force
-        particle_objects[p, 3:6] -= pressure_gradient * dt
 
 # -- Simulation main --
 

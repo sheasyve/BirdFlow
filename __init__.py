@@ -46,8 +46,6 @@ class WindSim(bpy.types.Operator):
                 cell_size = scene.wind_simulation_particle_spread
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
-                particle_spread = cell_size
-                num_particles = int(size * size * size)
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
@@ -100,7 +98,7 @@ class WindSim(bpy.types.Operator):
             particle = bpy.data.objects.new(f"Particle_{len(bpy.data.objects)}", mesh)
             particle.location = position
             particle_collection.objects.link(particle)
-            bpy.context.scene.collection.objects.link(particle)  # Ensure particle is added to scene collection
+            bpy.context.scene.collection.objects.link(particle) 
             particle_objects.append(particle)
         return particle_objects
 
@@ -108,6 +106,10 @@ class WindSim(bpy.types.Operator):
         min_x, max_x, min_y, max_y, min_z, max_z = grid_boundaries
         for particle in list(particle_collection.objects):
             x, y, z = particle.location
+            if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
+                for collection in particle.users_collection:
+                    collection.objects.unlink(particle)
+                bpy.data.objects.remove(particle)
 
     def run_simulation(self, grid, bvh_tree, num_frames, particle_collection,
                    wind_speed, wind_acceleration, damping_factor, cell_size, grid_size):
@@ -126,8 +128,6 @@ class WindSim(bpy.types.Operator):
             grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
             particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
             particle_positions = cy_collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
-            #particle_density(grid, particle_positions,dt)
-            #particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
                 particle.keyframe_insert(data_path="location", frame=frame)

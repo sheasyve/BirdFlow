@@ -33,6 +33,7 @@ cdef class MACGrid:
                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]  # Mac grid offset
 
     cpdef cnp.ndarray get_mask(self, object bvh_tree):
+        # Build the solid object mask with the mesh, for pressure solving
         cdef cnp.npy_intp nx = self.grid_size[0]
         cdef cnp.npy_intp ny = self.grid_size[1]
         cdef cnp.npy_intp nz = self.grid_size[2]
@@ -89,6 +90,7 @@ cdef class MACGrid:
             return i + j * nx + k * nx * ny
 
     cpdef object build_sparse(self):
+        #Create the matrix to solve the linear system, matrix is of all grid cells, representing which are solid object and not
         cdef cnp.npy_intp nx, ny, nz
         cdef list row = []
         cdef list col = []
@@ -99,8 +101,6 @@ cdef class MACGrid:
         cdef dict sys_idx_to_cell = {}
         cdef int x, y, z
         nx, ny, nz = self.grid_size
-
-        # First pass: assign system indices to fluid cells
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
@@ -109,13 +109,9 @@ cdef class MACGrid:
                         sys_idx_to_cell[system_index] = (x, y, z)
                         system_index += 1
         n_points = system_index 
-
-        # Second pass: build the matrix
         for (x, y, z), p in cell_to_sys_idx.items():
             diag = 0
-            for dx, dy, dz in [(-1, 0, 0), (1, 0, 0),
-                               (0, -1, 0), (0, 1, 0),
-                               (0, 0, -1), (0, 0, 1)]:
+            for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
                     diag += 1
@@ -125,7 +121,7 @@ cdef class MACGrid:
                         col.append(neighbor_p)
                         data.append(-1)
                 else:
-                    diag += 1  # Increment diagonal for boundary cells
+                    diag += 1 
             row.append(p)
             col.append(p)
             data.append(diag)
