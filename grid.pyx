@@ -73,42 +73,43 @@ cdef class MACGrid:
         cdef list col = []
         cdef list data = []
         cdef object laplacian
+        cdef int system_index = 0
+        cdef dict cell_to_sys_idx = {}
+        cdef dict sys_idx_to_cell = {}
+        cdef int x, y, z
         nx, ny, nz = self.grid_size
-        n_points = nx * ny * nz
+
+        # First pass: assign system indices to fluid cells
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
-                    if self.solid_mask[x, y, z] == 1:
-                        continue 
-                    p = self.index(x, y, z, nx, ny, nz)
-                    row.append(p)
-                    col.append(p)
-                    data.append(6)  # Center coefficient
-                    # Check each neighbor and add connections if not solid
-                    if x > 0 and self.solid_mask[x - 1, y, z] == 0:
+                    if self.solid_mask[x, y, z] == 0:
+                        cell_to_sys_idx[(x, y, z)] = system_index
+                        sys_idx_to_cell[system_index] = (x, y, z)
+                        system_index += 1
+        n_points = system_index 
+
+        # Second pass: build the matrix
+        for (x, y, z), p in cell_to_sys_idx.items():
+            diag = 0  
+            for dx, dy, dz in [(-1, 0, 0), (1, 0, 0),
+                               (0, -1, 0), (0, 1, 0),
+                               (0, 0, -1), (0, 0, 1)]:
+                nx_, ny_, nz_ = x + dx, y + dy, z + dz
+                if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
+                    if self.solid_mask[nx_, ny_, nz_] == 0:
+                        neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
                         row.append(p)
-                        col.append(self.index(x - 1, y, z, nx, ny, nz))
+                        col.append(neighbor_p)
                         data.append(-1)
-                    if x < nx - 1 and self.solid_mask[x + 1, y, z] == 0:
-                        row.append(p)
-                        col.append(self.index(x + 1, y, z, nx, ny, nz))
-                        data.append(-1)
-                    if y > 0 and self.solid_mask[x, y - 1, z] == 0:
-                        row.append(p)
-                        col.append(self.index(x, y - 1, z, nx, ny, nz))
-                        data.append(-1)
-                    if y < ny - 1 and self.solid_mask[x, y + 1, z] == 0:
-                        row.append(p)
-                        col.append(self.index(x, y + 1, z, nx, ny, nz))
-                        data.append(-1)
-                    if z > 0 and self.solid_mask[x, y, z - 1] == 0:
-                        row.append(p)
-                        col.append(self.index(x, y, z - 1, nx, ny, nz))
-                        data.append(-1)
-                    if z < nz - 1 and self.solid_mask[x, y, z + 1] == 0:
-                        row.append(p)
-                        col.append(self.index(x, y, z + 1, nx, ny, nz))
-                        data.append(-1)
+                        diag += 1
+                    else:
+                        pass
+                else:
+                    pass
+            row.append(p)
+            col.append(p)
+            data.append(diag)
         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
-        return laplacian.tocsr()
-        
+        return laplacian.tocsr(), cell_to_sys_idx, sys_idx_to_cell
+

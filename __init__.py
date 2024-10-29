@@ -168,7 +168,7 @@ def register():
     bpy.types.Scene.wind_simulation_grid_size = bpy.props.IntProperty(
         name="Grid Size",
         description="Grid size",
-        default=3,
+        default=7,
         min=2,
         max=50
     )
@@ -196,14 +196,14 @@ def register():
     bpy.types.Scene.wind_simulation_particle_spread = bpy.props.FloatProperty(
         name="Cell Size",
         description="Distance between particles when they are created",
-        default=0.5,
+        default=1,
         min=0.001,
         max=5.0
     )
     bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
-        default=10,
+        default=50,
         min=1,
         max=1000
     )

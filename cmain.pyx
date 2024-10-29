@@ -276,27 +276,28 @@ cpdef void v_boundary_conditions(MACGrid grid):
             grid.w[x, y, nz] = 0.0  
 
 cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
-    cdef int x, y, z
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
+    cdef cnp.npy_intp nx, ny, nz
     cdef double h = grid.cell_size
     cdef double max_vel = 0
     cdef cnp.ndarray rhs
     cdef int info = 0
-    cdef object A = grid.build_sparse()
-    for x in range(1, nx-1):
-        for y in range(1, ny-1):
-            for z in range(1, nz-1):
-                u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
-                v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
-                w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
-                grid.divergence[x, y, z] = (u_diff + v_diff + w_diff) / h
-                max_vel = max(max_vel, get_vel(grid, x, y, z))
+    cdef object A, cell_to_sys_idx, sys_idx_to_cell
+    cdef int x, y, z, p
+    nx, ny, nz = grid.grid_size
+    A, cell_to_sys_idx, sys_idx_to_cell = grid.build_sparse()
+    n_points = A.shape[0]  # Number of fluid cells
+    rhs = np.zeros(n_points, dtype=np.float64)
+    for (x, y, z), p in cell_to_sys_idx.items():
+        u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
+        v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
+        w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
+        rhs[p] = -(u_diff + v_diff + w_diff) / h
+        max_vel = max(max_vel, get_vel(grid, x, y, z))
     grid.max_vel = max_vel
-    rhs = np.nan_to_num(grid.divergence.flatten(order='F'))
-    grid.pressure, info = cg(A, rhs, x0=grid.pressure.flatten(order='F'), maxiter=iterations)
-    grid.pressure = grid.pressure.reshape((nx, ny, nz),order='F')
+    pressure_solution, info = cg(A, rhs, maxiter=iterations)
+    grid.pressure[:, :, :] = 0.0  
+    for p, (x, y, z) in sys_idx_to_cell.items():
+        grid.pressure[x, y, z] = pressure_solution[p]
     p_boundary_conditions(grid)
 
 # -- Pressure Projection --
@@ -306,26 +307,22 @@ cpdef void cy_project(MACGrid grid):
     cdef cnp.npy_intp nx, ny, nz
     nx, ny, nz = grid.grid_size
     cdef double h = grid.cell_size
-    # Update u velocities
-    for x in range(1, nx):
+    for x in range(nx + 1):
         for y in range(ny):
             for z in range(nz):
-                if grid.solid_mask[x-1, y, z] == 0 and grid.solid_mask[x, y, z] == 0:
+                if 0 < x < nx and (grid.solid_mask[x-1, y, z] == 0 or grid.solid_mask[x, y, z] == 0):
                     grid.u[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x-1, y, z]) / h
-    # Update v velocities
     for x in range(nx):
-        for y in range(1, ny):
+        for y in range(ny + 1):
             for z in range(nz):
-                if grid.solid_mask[x, y-1, z] == 0 and grid.solid_mask[x, y, z] == 0:
+                if 0 < y < ny and (grid.solid_mask[x, y-1, z] == 0 or grid.solid_mask[x, y, z] == 0):
                     grid.v[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y-1, z]) / h
-    # Update w velocities
     for x in range(nx):
         for y in range(ny):
-            for z in range(1, nz):
-                if grid.solid_mask[x, y, z-1] == 0 and grid.solid_mask[x, y, z] == 0:
+            for z in range(nz + 1):
+                if 0 < z < nz and (grid.solid_mask[x, y, z-1] == 0 or grid.solid_mask[x, y, z] == 0):
                     grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
     v_boundary_conditions(grid)
-
 
 # -- Density Advection --
 
@@ -440,6 +437,7 @@ cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
         cy_predict_wind(grid, dt, wind_speed, wind_acceleration, damping_factor)
+        cy_advect_velocities(grid, dt)  
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
         cy_advect_velocities(grid, dt)  
