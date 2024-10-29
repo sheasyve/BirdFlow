@@ -124,10 +124,10 @@ class WindSim(bpy.types.Operator):
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0] 
                                            for p in particle_collection.objects])
             grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
-            particle_positions = advect_particles(grid, particle_positions, dt, 0)#type: ignore 
+            particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
             particle_positions = cy_collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
             #particle_density(grid, particle_positions,dt)
-            particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
+            #particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
                 particle.keyframe_insert(data_path="location", frame=frame)
@@ -160,7 +160,7 @@ def register():
     bpy.types.Scene.wind_simulation_grid_size = bpy.props.IntProperty(
         name="Grid Size",
         description="Grid size",
-        default=7,
+        default=10,
         min=2,
         max=50
     )
@@ -181,7 +181,7 @@ def register():
     bpy.types.Scene.wind_simulation_damping_factor = bpy.props.FloatProperty(
         name="Wind Damping",
         description="Damping factor for wind.",
-        default=0.8,
+        default=0.99,
         min=0.0,
         max=1.0
     )
@@ -195,7 +195,7 @@ def register():
     bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
-        default=50,
+        default=100,
         min=1,
         max=1000
     )
