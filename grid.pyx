@@ -33,16 +33,37 @@ cdef class MACGrid:
                     self.position[x, y, z, :] = [(x + 0.5) * cell_size, (y + 0.5) * cell_size, (z + 0.5) * cell_size]  # Mac grid offset
 
     cpdef cnp.ndarray get_mask(self, object bvh_tree):
-        cdef cnp.npy_intp nx, ny, nz
-        nx, ny, nz = self.grid_size
-        pos = Vector((0.0, 0.0, 0.0)) 
+        cdef cnp.npy_intp nx = self.grid_size[0]
+        cdef cnp.npy_intp ny = self.grid_size[1]
+        cdef cnp.npy_intp nz = self.grid_size[2]
+        cdef object pos
+        cdef object direction
+        cdef int intersections
+        cdef object result
+        cdef double max_distance
+        cdef bint hit 
+        self.solid_mask = np.zeros((nx, ny, nz), dtype=np.int8)
+        direction = Vector((1.0, 0.0, 0.0)) 
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
-                    pos.x, pos.y, pos.z = self.position[x, y, z, :]
-                    location, normal, index, distance = bvh_tree.find_nearest(pos)
-                    if location and (location - pos).length < self.cell_size * 0.001:
-                        self.solid_mask[x, y, z] = 1
+                    pos = Vector(self.position[x, y, z, :])
+                    intersections = 0
+                    start = pos.copy()
+                    max_distance = 1e6 
+                    hit = True
+                    while hit:
+                        result = bvh_tree.ray_cast(start, direction, max_distance)
+                        if result[0] is not None:
+                            location, normal, index, distance = result
+                            intersections += 1
+                            start = location + direction * 1e-5
+                            max_distance -= distance + 1e-5
+                        else:
+                            hit = False
+                    if intersections % 2 == 1:
+                        self.solid_mask[x, y, z] = 1  
+        return self.solid_mask
 
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z):
         return self.position[x, y, z, :]
@@ -91,22 +112,20 @@ cdef class MACGrid:
 
         # Second pass: build the matrix
         for (x, y, z), p in cell_to_sys_idx.items():
-            diag = 0  
+            diag = 0
             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0),
                                (0, -1, 0), (0, 1, 0),
                                (0, 0, -1), (0, 0, 1)]:
                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
+                    diag += 1
                     if self.solid_mask[nx_, ny_, nz_] == 0:
                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
                         row.append(p)
                         col.append(neighbor_p)
                         data.append(-1)
-                        diag += 1
-                    else:
-                        pass
                 else:
-                    pass
+                    diag += 1  # Increment diagonal for boundary cells
             row.append(p)
             col.append(p)
             data.append(diag)

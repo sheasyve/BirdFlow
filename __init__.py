@@ -39,7 +39,6 @@ class WindSim(bpy.types.Operator):
             scene = context.scene
             obj = context.active_object
             if obj and obj.type == 'MESH':
-                # Simulation parameters
                 num_frames = scene.wind_simulation_num_frames
                 size = scene.wind_simulation_grid_size
                 grid_size = (size, size, size)
@@ -49,18 +48,12 @@ class WindSim(bpy.types.Operator):
                 damping_factor = scene.wind_simulation_damping_factor
                 particle_spread = cell_size
                 num_particles = int(size * size * size)
-
-                # Scene frame setup
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
-
-                # Wind and grid configuration
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
                 wind_acceleration = np.array([wind_acceleration_x, 0.0, 0.0], dtype=np.float64)
                 bvh = self.get_bvh_tree(obj)
                 grid = MACGrid(grid_size, cell_size)
-
-                # Create particle collection and initial particles
                 particle_collection = self.create_particle_collection()
                 self.run_simulation(grid, bvh, num_frames, particle_collection,
                                     wind_speed, wind_acceleration, damping_factor, cell_size, grid_size)
@@ -73,7 +66,6 @@ class WindSim(bpy.types.Operator):
             self.report({'ERROR'}, f"Simulation failed: {e}")
             print(f"Error during simulation: {e}")
             return {'CANCELLED'}
-
 
     def create_mesh(self):
         mesh = bpy.data.meshes.get("ParticleMesh")

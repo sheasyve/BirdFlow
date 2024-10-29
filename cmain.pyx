@@ -233,11 +233,21 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
 # -- Pressure Solve --
 
 cpdef double get_vel(MACGrid grid, int x, int y, int z):
-    # Gets max velocity in simulation during pressure solve for next dt calculation
-    cdef double u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
-    cdef double v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
-    cdef double w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
-    return (u**2+v**2+w**2)**0.5
+    # Adjusted to prevent negative indices
+    cdef double u, v, w
+    if x > 0:
+        u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
+    else:
+        u = grid.u[x, y, z]
+    if y > 0:
+        v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
+    else:
+        v = grid.v[x, y, z]
+    if z > 0:
+        w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
+    else:
+        w = grid.w[x, y, z]
+    return (u**2 + v**2 + w**2)**0.5
 
 cpdef void p_boundary_conditions(MACGrid grid):
     # Neumann boundary conditions (zero gradient at boundaries)
@@ -285,7 +295,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef int x, y, z, p
     nx, ny, nz = grid.grid_size
     A, cell_to_sys_idx, sys_idx_to_cell = grid.build_sparse()
-    n_points = A.shape[0]  # Number of fluid cells
+    n_points = A.shape[0]
     rhs = np.zeros(n_points, dtype=np.float64)
     for (x, y, z), p in cell_to_sys_idx.items():
         u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
@@ -294,7 +304,15 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
         rhs[p] = -(u_diff + v_diff + w_diff) / h
         max_vel = max(max_vel, get_vel(grid, x, y, z))
     grid.max_vel = max_vel
+    fixed_cell = (0, 0, 0)
+    if fixed_cell in cell_to_sys_idx:
+        fixed_p = cell_to_sys_idx[fixed_cell]
+        A.data[A.indptr[fixed_p]:A.indptr[fixed_p+1]] = 0
+        A[fixed_p, fixed_p] = 1
+        rhs[fixed_p] = 0
     pressure_solution, info = cg(A, rhs, maxiter=iterations)
+    if info != 0:
+        print(f"Warning: Conjugate gradient solver did not converge (info={info})")
     grid.pressure[:, :, :] = 0.0  
     for p, (x, y, z) in sys_idx_to_cell.items():
         grid.pressure[x, y, z] = pressure_solution[p]
