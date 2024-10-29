@@ -102,24 +102,10 @@ cpdef double trilinear_interpolate(cnp.ndarray face_u, cnp.npy_intp i, cnp.npy_i
     return c
 
 cpdef cnp.ndarray interp_u_at_p(MACGrid grid, cnp.ndarray pos):
-    # Get the whole velocity vector from a position
-    cdef double cs = grid.cell_size
-    cdef double x = pos[0]/cs
-    cdef double y = pos[1]/cs
-    cdef double z = pos[2]/cs
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
-    cdef cnp.npy_intp i = min(max(int(x), 0), nx - 2)
-    cdef cnp.npy_intp j = min(max(int(y), 0), ny - 2)
-    cdef cnp.npy_intp k = min(max(int(z), 0), nz - 2)
-    cdef double fx = min(max(x - i, 0.0), 1.0)
-    cdef double fy = min(max(y - j, 0.0), 1.0)
-    cdef double fz = min(max(z - k, 0.0), 1.0)
     cdef cnp.ndarray[double, ndim=1] vel = np.zeros(3, dtype=np.float64)
-    vel[0] = trilinear_interpolate(grid.u, i, j, k, fx, fy, fz)  # U-component
-    vel[1] = trilinear_interpolate(grid.v, i, j, k, fx, fy, fz)  # V-component
-    vel[2] = trilinear_interpolate(grid.w, i, j, k, fx, fy, fz)  # W-component
+    vel[0] = interp_component_u_at_p(grid.u, pos, Component.U, grid)
+    vel[1] = interp_component_u_at_p(grid.v, pos, Component.V, grid)
+    vel[2] = interp_component_u_at_p(grid.w, pos, Component.W, grid)
     return vel
 
 cpdef double interp_component_u_at_p(cnp.ndarray face_vel, cnp.ndarray pos, Component component, MACGrid grid):
@@ -203,7 +189,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 pos[0] = x * cell_size
                 pos[1] = (y + 0.5) * cell_size
                 pos[2] = (z + 0.5) * cell_size
-                print(pos)
                 uk1[x, y, z] = interp_component_u_at_p(grid.u, pos, Component.U, grid)
                 temp_pos[:] = pos + 0.5 * dt * uk1[x, y, z]
                 temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
@@ -212,7 +197,6 @@ cpdef void cy_advect_velocities(MACGrid grid, double dt):
                 temp_pos[:] = np.clip(temp_pos, [0, 0, 0], [(nx - 1) * cell_size, (ny - 1) * cell_size, (nz - 1) * cell_size])
                 uk3[x, y, z] = interp_component_u_at_p(grid.u, temp_pos, Component.U, grid)
                 new_u[x, y, z] = grid.u[x, y, z] + (2 / 9) * dt * uk1[x, y, z] + (3 / 9) * dt * uk2[x, y, z] + (4 / 9) * dt * uk3[x, y, z]
-                print(new_u[x ,y ,z])
     for x in range(nx):
         for y in range(ny + 1):
             for z in range(nz):
@@ -319,20 +303,29 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
 
 cpdef void cy_project(MACGrid grid):
     cdef int x, y, z
-    cdef cnp.npy_intp nx = grid.grid_size[0]
-    cdef cnp.npy_intp ny = grid.grid_size[1]
-    cdef cnp.npy_intp nz = grid.grid_size[2]
+    cdef cnp.npy_intp nx, ny, nz
+    nx, ny, nz = grid.grid_size
     cdef double h = grid.cell_size
-    for x in range(nx):
+    # Update u velocities
+    for x in range(1, nx):
         for y in range(ny):
             for z in range(nz):
-                if x > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x-1, y, z] == 0:
+                if grid.solid_mask[x-1, y, z] == 0 and grid.solid_mask[x, y, z] == 0:
                     grid.u[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x-1, y, z]) / h
-                if y > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x, y-1, z] == 0:
+    # Update v velocities
+    for x in range(nx):
+        for y in range(1, ny):
+            for z in range(nz):
+                if grid.solid_mask[x, y-1, z] == 0 and grid.solid_mask[x, y, z] == 0:
                     grid.v[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y-1, z]) / h
-                if z > 0 and grid.solid_mask[x, y, z] == 0 and grid.solid_mask[x, y, z-1] == 0:
+    # Update w velocities
+    for x in range(nx):
+        for y in range(ny):
+            for z in range(1, nz):
+                if grid.solid_mask[x, y, z-1] == 0 and grid.solid_mask[x, y, z] == 0:
                     grid.w[x, y, z] -= (grid.pressure[x, y, z] - grid.pressure[x, y, z-1]) / h
     v_boundary_conditions(grid)
+
 
 # -- Density Advection --
 
@@ -379,7 +372,6 @@ cpdef cnp.ndarray cy_collide(cnp.ndarray particle_objects, object bvh_tree, doub
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
     cdef object location, normal, distance
-    
     for p in range(particle_objects.shape[0]):
         pos[:] = particle_objects[p, :3]
         vel[:] = particle_objects[p, 3:6]
@@ -389,7 +381,7 @@ cpdef cnp.ndarray cy_collide(cnp.ndarray particle_objects, object bvh_tree, doub
         direction = Vector(vel / (np.linalg.norm(vel) + .001))
         result = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
         if result is not None:
-            location, normal, index, distance = result  # Unpack the ray_cast result tuple
+            location, normal, index, distance = result 
             if distance is not None and distance > 0 and distance <= np.linalg.norm(vel) * dt:
                 redirect_particle_velocity(vel, np.array(normal, dtype=np.float64), damping_factor, friction)
                 particle_objects[p, 3:6] = vel
@@ -420,6 +412,19 @@ cpdef cnp.ndarray advect_particles(MACGrid grid, cnp.ndarray particle_objects, d
             particle_objects[p, :3] = pos  
     return particle_objects
 
+cpdef void particle_density(MACGrid grid, cnp.ndarray particle_objects, double dt):
+    cdef int p
+    cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray pressure_gradient = np.zeros(3, dtype=np.float64)
+    for p in range(particle_objects.shape[0]):
+        pos[:] = particle_objects[p, :3]
+        # Compute pressure gradient at particle position
+        pressure_gradient[0] = (interp_scalar_u_at_p(grid.pressure, pos + [grid.cell_size, 0, 0], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [grid.cell_size, 0, 0], grid.cell_size)) / (2 * grid.cell_size)
+        pressure_gradient[1] = (interp_scalar_u_at_p(grid.pressure, pos + [0, grid.cell_size, 0], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [0, grid.cell_size, 0], grid.cell_size)) / (2 * grid.cell_size)
+        pressure_gradient[2] = (interp_scalar_u_at_p(grid.pressure, pos + [0, 0, grid.cell_size], grid.cell_size) - interp_scalar_u_at_p(grid.pressure, pos - [0, 0, grid.cell_size], grid.cell_size)) / (2 * grid.cell_size)
+        # Apply pressure force
+        particle_objects[p, 3:6] -= pressure_gradient * dt
+
 # -- Simulation main --
 
 cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
@@ -435,7 +440,6 @@ cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
         cy_predict_wind(grid, dt, wind_speed, wind_acceleration, damping_factor)
-        cy_advect_velocities(grid, dt) 
         cy_pressure_solve(grid, dt, iterations=50)
         cy_project(grid)
         cy_advect_velocities(grid, dt)  
