@@ -143,7 +143,7 @@ cpdef void initialize_velocity(MACGrid grid, double noise_magnitude=0.01):
 
 # -- Velocity Advection --
 
-cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
+cpdef void wind_force(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
     cdef cnp.npy_intp x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
@@ -170,7 +170,7 @@ cpdef void cy_predict_wind(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] 
                     grid.w[x, y, z] += wind_acceleration[2] * dt
                 grid.w[x, y, z] = max(min(grid.w[x, y, z], wind_speed[2]), -wind_speed[2])
 
-cpdef void cy_advect_velocities(MACGrid grid, double dt):
+cpdef void advect_velocities(MACGrid grid, double dt):
     # Apply new velocities from collision with RK3 (Runge Kutta Order-3) method
     cdef cnp.ndarray uk1, vk1, wk1, uk2, vk2, wk2, uk3, vk3, wk3
     cdef cnp.ndarray new_u, new_v, new_w
@@ -284,7 +284,7 @@ cpdef void v_boundary_conditions(MACGrid grid):
             grid.w[x, y, 0] = 0.0
             grid.w[x, y, nz] = 0.0  
 
-cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
+cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
     cdef cnp.npy_intp nx, ny, nz
     cdef double h = grid.cell_size
     cdef double max_vel = 0
@@ -319,7 +319,7 @@ cpdef void cy_pressure_solve(MACGrid grid, double dt, int iterations=50):
 
 # -- Pressure Projection --
 
-cpdef void cy_project(MACGrid grid):
+cpdef void project(MACGrid grid):
     cdef int x, y, z
     cdef cnp.npy_intp nx, ny, nz
     nx, ny, nz = grid.grid_size
@@ -343,7 +343,7 @@ cpdef void cy_project(MACGrid grid):
 
 # -- Density Advection --
 
-cpdef void cy_advect_density(MACGrid grid, double dt):
+cpdef void advect_density(MACGrid grid, double dt):
     # Advect density scalar with RK3 method
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
@@ -381,7 +381,7 @@ cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, doubl
     reflected_u[:] -= friction * tangent_u
     vel[:] = reflected_u
 
-cpdef cnp.ndarray cy_collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
+cpdef cnp.ndarray collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
     cdef int p
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
@@ -442,11 +442,11 @@ cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
     grid.divergence = np.zeros((nx, ny, nz), dtype=np.float64)
     while t < tframe:
         dt = min(calc_dt(grid, initial_dt, cell_size, wind_acceleration), tframe - t)
-        cy_predict_wind(grid, dt, wind_speed, wind_acceleration, damping_factor)
-        cy_advect_velocities(grid, dt)  
-        cy_pressure_solve(grid, dt, iterations=50)
-        cy_project(grid)
-        cy_advect_velocities(grid, dt)  
-        cy_advect_density(grid, dt)
+        wind_force(grid, dt, wind_speed, wind_acceleration, damping_factor)
+        advect_velocities(grid, dt)  
+        pressure_solve(grid, dt, iterations=50)
+        project(grid)
+        advect_velocities(grid, dt)  
+        advect_density(grid, dt)
         t += dt
     return grid

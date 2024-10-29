@@ -127,7 +127,7 @@ class WindSim(bpy.types.Operator):
                                            for p in particle_collection.objects])
             grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
             particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
-            particle_positions = cy_collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
+            particle_positions = collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
                 particle.keyframe_insert(data_path="location", frame=frame)
