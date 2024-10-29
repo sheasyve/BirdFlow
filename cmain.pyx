@@ -375,37 +375,33 @@ cpdef void cy_advect_density(MACGrid grid, double dt):
 
 cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, double damping_factor, double friction):
     # Reflect velocity based on collision normal and apply damping and friction
-    cdef cnp.ndarray vel_normal = np.dot(vel, normal) * normal
-    cdef cnp.ndarray vel_tangent = vel - vel_normal
-    vel_normal *= -1
-    vel_tangent *= (1 - friction)
-    vel[:] = (vel_normal + vel_tangent) * damping_factor
-
+    cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
+    cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
+    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * damping_factor
+    tangent_u[:] = reflected_u - np.dot(reflected_u, normal) * normal
+    reflected_u[:] -= friction * tangent_u
+    vel[:] = reflected_u
 
 cpdef cnp.ndarray cy_collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
     cdef int p
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)
-    cdef double vel_norm
-    cdef object location, normal, index, distance
+    cdef object location, normal, distance
     for p in range(particle_objects.shape[0]):
         pos[:] = particle_objects[p, :3]
         vel[:] = particle_objects[p, 3:6]
-        vel_norm = np.linalg.norm(vel)
-        if vel_norm == 0:
-            continue
-        origin = Vector(pos)
-        direction = Vector(vel / vel_norm)
-        max_distance = vel_norm * dt
-        result = bvh_tree.ray_cast(origin, direction, max_distance)
-        if result[0] is not None:
-            location, normal, index, distance = result
-            if 0 <= distance <= max_distance:
-                particle_objects[p, :3] = np.array(location, dtype=np.float64)
+        if np.linalg.norm(vel) == 0:
+            continue 
+        origin = Vector(pos - vel * dt)
+        direction = Vector(vel / (np.linalg.norm(vel) + .001))
+        result = bvh_tree.ray_cast(origin, direction, np.linalg.norm(vel) * dt)
+        if result is not None:
+            location, normal, index, distance = result 
+            if distance is not None and distance > 0 and distance <= np.linalg.norm(vel) * dt:
                 redirect_particle_velocity(vel, np.array(normal, dtype=np.float64), damping_factor, friction)
                 particle_objects[p, 3:6] = vel
-        else:
-            particle_objects[p, :3] += vel * dt
+                pos += vel * dt
+                particle_objects[p, :3] = pos  
     return particle_objects
 
 # -- Particle Advection
