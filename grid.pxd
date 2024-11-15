@@ -17,12 +17,12 @@ cdef class MACGrid:
     cdef cnp.ndarray density     # density (rho) at cell center (array sz, ny, nz)
     cdef cnp.ndarray position    # positions (pos) of cell center (array sz: nx, ny, nz, 3)
     cdef cnp.ndarray solid_mask  # Array representing the mesh, for collisions
-    cdef cnp.ndarray divergence
-    cpdef int index(self, i, j, k, nx, ny, nz)
-    cpdef cnp.ndarray get_mask(self, object bvh_tree)
+    cdef cnp.ndarray divergence  # Divergence of the velocities for pressure solving
+    cpdef int index(self, i, j, k, nx, ny, nz) # Get linear index of cell
+    cpdef cnp.ndarray get_mask(self, object bvh_tree) # Build solid object mask, at start of simulation
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)
     cpdef void set_face_velocities(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z, cnp.ndarray vel)
-    cpdef object build_sparse(self)
+    cpdef object build_sparse(self)# Build sparse matrix for pressure solving
     
 '''For a grid of nx, ny, nz cells, we store the pressure in a
 nx, ny, nz array, the x component of the velocity in a nx+1, ny, nz

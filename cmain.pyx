@@ -127,6 +127,7 @@ cpdef double interp_scalar_u_at_p(cnp.ndarray scalar_field, cnp.ndarray pos, dou
 # -- Calculate DT
 
 cpdef double calc_dt(MACGrid grid, double initial_dt, double cell_size, cnp.ndarray wind_acceleration):
+    # Calculate dt based on max velocity from pressure solve and cfl
     cdef double cfl = 0.2
     cdef double force = np.linalg.norm(wind_acceleration)
     cdef double umax = grid.max_vel + (cell_size * force) ** 0.5
@@ -144,6 +145,7 @@ cpdef void initialize_velocity(MACGrid grid, double noise_magnitude=0.01):
 # -- Velocity Advection --
 
 cpdef void wind_force(MACGrid grid, double dt, cnp.ndarray[double, ndim=1] wind_speed, cnp.ndarray[double, ndim=1] wind_acceleration, double damping_factor):
+    # Apply wind force on grid
     cdef cnp.npy_intp x, y, z
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
@@ -230,61 +232,61 @@ cpdef void advect_velocities(MACGrid grid, double dt):
     grid.w[:, :, :] = new_w
     v_boundary_conditions(grid)
 
-# -- Pressure Solve --
+# -- Pressure Solve Utilities --
 
 cpdef double get_vel(MACGrid grid, int x, int y, int z):
     cdef double u, v, w
-    if x > 0:
-        u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5)
-    else:
-        u = grid.u[x, y, z]
-    if y > 0:
-        v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5)
-    else:
-        v = grid.v[x, y, z]
-    if z > 0:
-        w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5)
-    else:
-        w = grid.w[x, y, z]
+    u = interp_dir(grid.u[x, y, z], grid.u[x-1, y, z], 0.5) if x > 0 else grid.u[x, y, z]
+    v = interp_dir(grid.v[x, y, z], grid.v[x, y-1, z], 0.5) if y > 0 else grid.v[x, y, z]
+    w = interp_dir(grid.w[x, y, z], grid.w[x, y, z-1], 0.5) if z > 0 else grid.w[x, y, z]
     return (u**2 + v**2 + w**2)**0.5
 
 cpdef void p_boundary_conditions(MACGrid grid):
-    # Neumann boundary conditions
+    # Neumann solid boundary conditions for pressure
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    for y in range(ny):
-        for z in range(nz):
-            grid.pressure[0, y, z] = grid.pressure[1, y, z]
-            grid.pressure[nx-1, y, z] = grid.pressure[nx-2, y, z]
-    for x in range(nx):
-        for z in range(nz):
-            grid.pressure[x, 0, z] = grid.pressure[x, 1, z]
-            grid.pressure[x, ny-1, z] = grid.pressure[x, ny-2, z]
-    for x in range(nx):
-        for y in range(ny):
-            grid.pressure[x, y, 0] = grid.pressure[x, y, 1]
-            grid.pressure[x, y, nz-1] = grid.pressure[x, y, nz-2]
+    for x in range(1, nx - 1):
+        for y in range(1, ny - 1):
+            for z in range(1, nz - 1):
+                if grid.solid_mask[x-1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x+1, y, z]
+                if grid.solid_mask[x+1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x-1, y, z]
+                if grid.solid_mask[x, y-1, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x, y+1, z]
+                if grid.solid_mask[x, y+1, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x, y-1, z]
+                if grid.solid_mask[x, y, z-1] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x, y, z+1]
+                if grid.solid_mask[x, y, z+1] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.pressure[x, y, z] = grid.pressure[x, y, z-1]
 
 cpdef void v_boundary_conditions(MACGrid grid):
-    # No-slip at boundaries
+    # No slip solid boundary conditions for velocity 
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    for y in range(ny):
-        for z in range(nz):
-            grid.u[0, y, z] = 0.0
-            grid.u[nx, y, z] = 0.0  
-    for x in range(nx):
-        for z in range(nz):
-            grid.v[x, 0, z] = 0.0
-            grid.v[x, ny, z] = 0.0  
-    for x in range(nx):
-        for y in range(ny):
-            grid.w[x, y, 0] = 0.0
-            grid.w[x, y, nz] = 0.0  
+    for x in range(1, nx - 1):
+        for y in range(1, ny - 1):
+            for z in range(1, nz - 1):
+                if grid.solid_mask[x-1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.u[x, y, z] = 0.0
+                if grid.solid_mask[x+1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.u[x, y, z] = 0.0
+                if grid.solid_mask[x, y-1, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.v[x, y, z] = 0.0
+                if grid.solid_mask[x, y+1, z] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.v[x, y, z] = 0.0
+                if grid.solid_mask[x, y, z-1] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.w[x, y, z] = 0.0
+                if grid.solid_mask[x, y, z+1] == 1 and grid.solid_mask[x, y, z] == 0:
+                    grid.w[x, y, z] = 0.0
+
+# -- Pressure Solve --
 
 cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
+    # The backbone of the fluid behavior
     cdef cnp.npy_intp nx, ny, nz
     cdef double h = grid.cell_size
     cdef double max_vel = 0
@@ -373,7 +375,7 @@ cpdef void advect_density(MACGrid grid, double dt):
 # -- Collisions for Particles --
 
 cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, double damping_factor, double friction):
-    # Reflect velocity based on collision normal and apply damping and friction
+    # Reflect damped velocity based on collision normal 
     cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
     reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .95
@@ -382,6 +384,7 @@ cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, doubl
     vel[:] = reflected_u
 
 cpdef cnp.ndarray collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
+    # Collide particles with the object, if needed after simulating from grid.
     cdef int p
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray vel = np.zeros(3, dtype=np.float64)

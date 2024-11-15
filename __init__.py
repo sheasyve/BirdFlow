@@ -97,6 +97,8 @@ class WindSim(bpy.types.Operator):
             position = Vector((0.1, y, z))
             particle = bpy.data.objects.new(f"Particle_{len(bpy.data.objects)}", mesh)
             particle.location = position
+            particle["opacity"] = 0.0
+            particle.keyframe_insert(data_path='["opacity"]', frame=0)
             particle_collection.objects.link(particle)
             bpy.context.scene.collection.objects.link(particle) 
             particle_objects.append(particle)
@@ -125,11 +127,16 @@ class WindSim(bpy.types.Operator):
                                grid_yz_bounds=(min_bound, max_bound, min_bound, max_bound))
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0] 
                                            for p in particle_collection.objects])
+            # Simulate grid for time step, advecting grid
             grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
+            # Apply velocity resulting from grid to particles
             particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
+            # Handle collisions if needed
             particle_positions = collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
+            # Update particles in blender
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
+                particle["opacity"] = 1.0
                 particle.keyframe_insert(data_path="location", frame=frame)
             self.remove_particles(particle_collection, grid_boundaries)
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0]

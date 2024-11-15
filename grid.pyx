@@ -17,7 +17,6 @@ cdef class MACGrid:
         cdef cnp.npy_intp nx = self.grid_size[0]
         cdef cnp.npy_intp ny = self.grid_size[1]
         cdef cnp.npy_intp nz = self.grid_size[2]
-        print(nx,ny,nz)
         self.u = np.zeros((nx+1, ny, nz), dtype=np.float64)
         self.v = np.zeros((nx, ny+1, nz), dtype=np.float64)
         self.w = np.zeros((nx, ny, nz+1), dtype=np.float64)
@@ -90,13 +89,13 @@ cdef class MACGrid:
             return i + j * nx + k * nx * ny
 
     cpdef object build_sparse(self):
-        #Create the matrix to solve the linear system, matrix is of all grid cells, representing which are solid object and not
+        #Create the laplacian matrix to solve the linear system, matrix is of all grid cells, representing which are solid object and not
         cdef cnp.npy_intp nx, ny, nz
         cdef list row = []
         cdef list col = []
         cdef list data = []
         cdef object laplacian
-        cdef int system_index = 0
+        cdef int total_idx = 0
         cdef dict cell_to_sys_idx = {}
         cdef dict sys_idx_to_cell = {}
         cdef int x, y, z
@@ -105,10 +104,10 @@ cdef class MACGrid:
             for y in range(ny):
                 for z in range(nz):
                     if self.solid_mask[x, y, z] == 0:
-                        cell_to_sys_idx[(x, y, z)] = system_index
-                        sys_idx_to_cell[system_index] = (x, y, z)
-                        system_index += 1
-        n_points = system_index 
+                        cell_to_sys_idx[(x, y, z)] = total_idx
+                        sys_idx_to_cell[total_idx] = (x, y, z)
+                        total_idx += 1
+        n_points = total_idx 
         for (x, y, z), p in cell_to_sys_idx.items():
             diag = 0
             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
