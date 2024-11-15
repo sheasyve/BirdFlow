@@ -35,6 +35,7 @@ class WindSim(bpy.types.Operator):
         return bvh_tree
     
     def execute(self, context):
+        # Run the simulation
         try:
             scene = context.scene
             obj = context.active_object
@@ -195,14 +196,14 @@ def register():
     bpy.types.Scene.wind_simulation_particle_spread = bpy.props.FloatProperty(
         name="Cell Size",
         description="Distance between particles when they are created",
-        default=1,
+        default=.4,
         min=0.001,
         max=5.0
     )
     bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
-        default=100,
+        default=150,
         min=1,
         max=1000
     )
