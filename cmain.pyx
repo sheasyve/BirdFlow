@@ -391,7 +391,7 @@ cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, doubl
     # Reflect damped velocity based on collision normal 
     cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
-    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .95
+    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .9
     tangent_u[:] = reflected_u - np.dot(reflected_u, normal) * normal
     reflected_u[:] -= friction * tangent_u
     vel[:] = reflected_u
