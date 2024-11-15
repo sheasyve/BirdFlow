@@ -282,6 +282,19 @@ cpdef void v_boundary_conditions(MACGrid grid):
                     grid.w[x, y, z] = 0.0
                 if grid.solid_mask[x, y, z+1] == 1 and grid.solid_mask[x, y, z] == 0:
                     grid.w[x, y, z] = 0.0
+    # Handle boundaries at the edges of the grid
+    for y in range(ny):
+        for z in range(nz):
+            grid.u[0, y, z] = 0.0  
+            grid.u[nx-1, y, z] = 0.0  
+    for x in range(nx):
+        for z in range(nz):
+            grid.v[x, 0, z] = 0.0  
+            grid.v[x, ny-1, z] = 0.0  
+    for x in range(nx):
+        for y in range(ny):
+            grid.w[x, y, 0] = 0.0  
+            grid.w[x, y, nz-1] = 0.0  
 
 # -- Pressure Solve --
 
