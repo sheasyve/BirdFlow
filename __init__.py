@@ -43,7 +43,7 @@ class WindSim(bpy.types.Operator):
                 size = scene.wind_simulation_grid_size
                 grid_size = (size, size, size)
                 wind_speed_x = scene.wind_simulation_wind_speed
-                cell_size = scene.wind_simulation_particle_spread
+                cell_size = 1.0 #scene.wind_simulation_particle_spread
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
                 bpy.context.scene.frame_start = 1
