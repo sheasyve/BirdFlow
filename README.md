@@ -72,10 +72,16 @@ Distribute the Blender (4.2.1) extension by building it using the Wheels package
 
 ### Compilation
 
+First install all dependencies and libraries upon the blenders python installation. 
+For example, it could be here /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
+
+Then build the application with blenders python.
 ```bash
-python setup.py build_ext --inplace
-python setup.py bdist_wheel
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py bdist_wheel
 ```
+Finally, create simlinks from each of the generated .so files to blenders applications folder.
+Blender should now see the extension.
 
 ### Tools, OS, and Libraries
 
@@ -97,11 +103,8 @@ python setup.py bdist_wheel
 - **numpy**: Number processing
 - **eigen**: Linear algebra
 - **wheels**: Application packaging and distribution
-- **cython extension**: Python to C bridge
+- **cython**: Python to C bridge
 - **scipy**: Algorithms and data structures
-- **pyAMG**: Algebraic Multigrid Solver
-- **SAMRAI**: AMR Library
-- **matplotlib**: Pre-visualization, debugging
 
 #### Textures, Models, Datasets
 

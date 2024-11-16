@@ -1,4 +1,6 @@
 cmain.cpython-311-x86_64-linux-gnu.so
+grid.cpython-311-x86_64-linux-gnu.so
+grid.c
 /build
 /.eggs
 /__pycache__

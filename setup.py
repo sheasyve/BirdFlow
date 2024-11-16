@@ -2,7 +2,11 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 from Cython.Compiler import Options
+
 Options.language_level = 3
+
+system_include = "/usr/include/python3.11"
+system_lib = "/usr/lib/python3.11"
 
 extensions = [
     Extension(
@@ -10,7 +14,25 @@ extensions = [
         sources=["cmain.pyx"],
         include_dirs=[
             np.get_include(),
-            "/usr/include/python3.11",  # Should change this to blender python binary path
+            system_include,  
+        ],
+        library_dirs=[
+            system_lib,
+            "/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/lib", 
+        ],
+        libraries=["stdc++"],
+        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
+    ),
+    Extension(
+        "grid",
+        sources=["grid.pyx"],
+        include_dirs=[
+            np.get_include(),
+            system_include, 
+        ],
+        library_dirs=[
+            system_lib,
+            "/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/lib",  
         ],
         libraries=["stdc++"],
         define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
