@@ -123,7 +123,7 @@ class WindSim(bpy.types.Operator):
         grid_boundaries = (min_bound, max_bound, min_bound, max_bound, min_bound, max_bound)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            self.add_particles(particle_collection, n=10, cell_size=cell_size,
+            self.add_particles(particle_collection, n=10, cell_size = cell_size,
                                grid_yz_bounds=(min_bound, max_bound, min_bound, max_bound))
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0] 
                                            for p in particle_collection.objects])
@@ -136,6 +136,7 @@ class WindSim(bpy.types.Operator):
             # Update particles in blender
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
+                density = get_density(grid, particle.location, cell_size)#type: ignore
                 particle["opacity"] = 1.0
                 particle.keyframe_insert(data_path="location", frame=frame)
             self.remove_particles(particle_collection, grid_boundaries)
