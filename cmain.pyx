@@ -267,21 +267,6 @@ cpdef void v_boundary_conditions(MACGrid grid):
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    for x in range(1, nx - 1):
-        for y in range(1, ny - 1):
-            for z in range(1, nz - 1):
-                if grid.solid_mask[x-1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.u[x, y, z] = 0.0
-                if grid.solid_mask[x+1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.u[x, y, z] = 0.0
-                if grid.solid_mask[x, y-1, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.v[x, y, z] = 0.0
-                if grid.solid_mask[x, y+1, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.v[x, y, z] = 0.0
-                if grid.solid_mask[x, y, z-1] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.w[x, y, z] = 0.0
-                if grid.solid_mask[x, y, z+1] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.w[x, y, z] = 0.0
     # Handle boundaries at the edges of the grid
     for y in range(ny):
         for z in range(nz):

@@ -9238,7 +9238,7 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
  *             cs_inv2 = 1.0 / (self.cell_size ** 2)
  *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:             # <<<<<<<<<<<<<<
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
- *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
+ *                 diag += 1
  */
     __pyx_t_17 = __pyx_tuple__11; __Pyx_INCREF(__pyx_t_17);
     __pyx_t_25 = 0;
@@ -9288,8 +9288,8 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
  *             cs_inv2 = 1.0 / (self.cell_size ** 2)
  *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz             # <<<<<<<<<<<<<<
+ *                 diag += 1
  *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
- *                     diag += 1
  */
       __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_x); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 115, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
@@ -9316,69 +9316,69 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
       /* "grid.pyx":116
  *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
- *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:             # <<<<<<<<<<<<<<
- *                     diag += 1
+ *                 diag += 1             # <<<<<<<<<<<<<<
+ *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
  *                     if self.solid_mask[nx_, ny_, nz_] == 0:
  */
-      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_nx_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_20 = __Pyx_PyInt_AddObjC(__pyx_v_diag, __pyx_int_1, 1, 1, 0); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_20);
+      __Pyx_DECREF_SET(__pyx_v_diag, __pyx_t_20);
+      __pyx_t_20 = 0;
+
+      /* "grid.pyx":117
+ *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
+ *                 diag += 1
+ *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:             # <<<<<<<<<<<<<<
+ *                     if self.solid_mask[nx_, ny_, nz_] == 0:
+ *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
+ */
+      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_nx_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
       if (__Pyx_PyObject_IsTrue(__pyx_t_20)) {
         __Pyx_DECREF(__pyx_t_20);
-        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_nx); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_nx); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
-        __pyx_t_20 = PyObject_RichCompare(__pyx_v_nx_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_20 = PyObject_RichCompare(__pyx_v_nx_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       }
-      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 117, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
       if (__pyx_t_26) {
       } else {
         __pyx_t_16 = __pyx_t_26;
         goto __pyx_L17_bool_binop_done;
       }
-      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_ny_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_ny_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
       if (__Pyx_PyObject_IsTrue(__pyx_t_20)) {
         __Pyx_DECREF(__pyx_t_20);
-        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_ny); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_ny); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
-        __pyx_t_20 = PyObject_RichCompare(__pyx_v_ny_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_20 = PyObject_RichCompare(__pyx_v_ny_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       }
-      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 117, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
       if (__pyx_t_26) {
       } else {
         __pyx_t_16 = __pyx_t_26;
         goto __pyx_L17_bool_binop_done;
       }
-      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_nz_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_20 = PyObject_RichCompare(__pyx_int_0, __pyx_v_nz_, Py_LE); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
       if (__Pyx_PyObject_IsTrue(__pyx_t_20)) {
         __Pyx_DECREF(__pyx_t_20);
-        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_nz); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyInt_From_npy_intp(__pyx_v_nz); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
-        __pyx_t_20 = PyObject_RichCompare(__pyx_v_nz_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 116, __pyx_L1_error)
+        __pyx_t_20 = PyObject_RichCompare(__pyx_v_nz_, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_20); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       }
-      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_26 = __Pyx_PyObject_IsTrue(__pyx_t_20); if (unlikely((__pyx_t_26 < 0))) __PYX_ERR(0, 117, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
       __pyx_t_16 = __pyx_t_26;
       __pyx_L17_bool_binop_done:;
       if (__pyx_t_16) {
 
-        /* "grid.pyx":117
- *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
- *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
- *                     diag += 1             # <<<<<<<<<<<<<<
- *                     if self.solid_mask[nx_, ny_, nz_] == 0:
- *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
- */
-        __pyx_t_20 = __Pyx_PyInt_AddObjC(__pyx_v_diag, __pyx_int_1, 1, 1, 0); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 117, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_20);
-        __Pyx_DECREF_SET(__pyx_v_diag, __pyx_t_20);
-        __pyx_t_20 = 0;
-
         /* "grid.pyx":118
+ *                 diag += 1
  *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
- *                     diag += 1
  *                     if self.solid_mask[nx_, ny_, nz_] == 0:             # <<<<<<<<<<<<<<
  *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
  *                         row.append(p)
@@ -9402,7 +9402,7 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
         if (__pyx_t_16) {
 
           /* "grid.pyx":119
- *                     diag += 1
+ *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
  *                     if self.solid_mask[nx_, ny_, nz_] == 0:
  *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]             # <<<<<<<<<<<<<<
  *                         row.append(p)
@@ -9439,7 +9439,7 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
  *                         row.append(p)
  *                         col.append(neighbor_p)             # <<<<<<<<<<<<<<
  *                         data.append(-cs_inv2)
- *                 else:
+ *             row.append(p)
  */
           __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_col, __pyx_v_neighbor_p); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 121, __pyx_L1_error)
 
@@ -9447,8 +9447,8 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
  *                         row.append(p)
  *                         col.append(neighbor_p)
  *                         data.append(-cs_inv2)             # <<<<<<<<<<<<<<
- *                 else:
- *                     diag += 1
+ *             row.append(p)
+ *             col.append(p)
  */
           __pyx_t_20 = PyFloat_FromDouble((-__pyx_v_cs_inv2)); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 122, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_20);
@@ -9456,130 +9456,114 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
           __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
 
           /* "grid.pyx":118
+ *                 diag += 1
  *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
- *                     diag += 1
  *                     if self.solid_mask[nx_, ny_, nz_] == 0:             # <<<<<<<<<<<<<<
  *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
  *                         row.append(p)
  */
         }
 
-        /* "grid.pyx":116
- *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
+        /* "grid.pyx":117
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
+ *                 diag += 1
  *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:             # <<<<<<<<<<<<<<
- *                     diag += 1
  *                     if self.solid_mask[nx_, ny_, nz_] == 0:
+ *                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
  */
-        goto __pyx_L16;
       }
-
-      /* "grid.pyx":124
- *                         data.append(-cs_inv2)
- *                 else:
- *                     diag += 1             # <<<<<<<<<<<<<<
- *             row.append(p)
- *             col.append(p)
- */
-      /*else*/ {
-        __pyx_t_20 = __Pyx_PyInt_AddObjC(__pyx_v_diag, __pyx_int_1, 1, 1, 0); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 124, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_20);
-        __Pyx_DECREF_SET(__pyx_v_diag, __pyx_t_20);
-        __pyx_t_20 = 0;
-      }
-      __pyx_L16:;
 
       /* "grid.pyx":114
  *             diag = 0
  *             cs_inv2 = 1.0 / (self.cell_size ** 2)
  *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:             # <<<<<<<<<<<<<<
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
- *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
+ *                 diag += 1
  */
     }
     __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
 
-    /* "grid.pyx":125
- *                 else:
- *                     diag += 1
+    /* "grid.pyx":123
+ *                         col.append(neighbor_p)
+ *                         data.append(-cs_inv2)
  *             row.append(p)             # <<<<<<<<<<<<<<
  *             col.append(p)
  *             data.append(diag * cs_inv2)
  */
-    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_row, __pyx_v_p); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 125, __pyx_L1_error)
+    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_row, __pyx_v_p); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 123, __pyx_L1_error)
 
-    /* "grid.pyx":126
- *                     diag += 1
+    /* "grid.pyx":124
+ *                         data.append(-cs_inv2)
  *             row.append(p)
  *             col.append(p)             # <<<<<<<<<<<<<<
  *             data.append(diag * cs_inv2)
  *         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
  */
-    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_col, __pyx_v_p); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 126, __pyx_L1_error)
+    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_col, __pyx_v_p); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 124, __pyx_L1_error)
 
-    /* "grid.pyx":127
+    /* "grid.pyx":125
  *             row.append(p)
  *             col.append(p)
  *             data.append(diag * cs_inv2)             # <<<<<<<<<<<<<<
  *         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
  *         return laplacian.tocsr(), cell_to_sys_idx, sys_idx_to_cell
  */
-    __pyx_t_17 = PyFloat_FromDouble(__pyx_v_cs_inv2); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 127, __pyx_L1_error)
+    __pyx_t_17 = PyFloat_FromDouble(__pyx_v_cs_inv2); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 125, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_17);
-    __pyx_t_20 = PyNumber_Multiply(__pyx_v_diag, __pyx_t_17); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 127, __pyx_L1_error)
+    __pyx_t_20 = PyNumber_Multiply(__pyx_v_diag, __pyx_t_17); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 125, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_20);
     __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
-    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_data, __pyx_t_20); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 127, __pyx_L1_error)
+    __pyx_t_27 = __Pyx_PyList_Append(__pyx_v_data, __pyx_t_20); if (unlikely(__pyx_t_27 == ((int)-1))) __PYX_ERR(0, 125, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "grid.pyx":128
+  /* "grid.pyx":126
  *             col.append(p)
  *             data.append(diag * cs_inv2)
  *         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))             # <<<<<<<<<<<<<<
  *         return laplacian.tocsr(), cell_to_sys_idx, sys_idx_to_cell
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_coo_matrix); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_coo_matrix); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_20 = PyTuple_New(2); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_20 = PyTuple_New(2); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_20);
   __Pyx_INCREF(__pyx_v_row);
   __Pyx_GIVEREF(__pyx_v_row);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 0, __pyx_v_row)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 0, __pyx_v_row)) __PYX_ERR(0, 126, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_col);
   __Pyx_GIVEREF(__pyx_v_col);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 1, __pyx_v_col)) __PYX_ERR(0, 128, __pyx_L1_error);
-  __pyx_t_17 = PyTuple_New(2); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 128, __pyx_L1_error)
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 1, __pyx_v_col)) __PYX_ERR(0, 126, __pyx_L1_error);
+  __pyx_t_17 = PyTuple_New(2); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_17);
   __Pyx_INCREF(__pyx_v_data);
   __Pyx_GIVEREF(__pyx_v_data);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 0, __pyx_v_data)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 0, __pyx_v_data)) __PYX_ERR(0, 126, __pyx_L1_error);
   __Pyx_GIVEREF(__pyx_t_20);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 1, __pyx_t_20)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 1, __pyx_t_20)) __PYX_ERR(0, 126, __pyx_L1_error);
   __pyx_t_20 = 0;
-  __pyx_t_20 = PyTuple_New(1); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_20 = PyTuple_New(1); if (unlikely(!__pyx_t_20)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_20);
   __Pyx_GIVEREF(__pyx_t_17);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 0, __pyx_t_17)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_20, 0, __pyx_t_17)) __PYX_ERR(0, 126, __pyx_L1_error);
   __pyx_t_17 = 0;
-  __pyx_t_17 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_17 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_17);
-  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n_points); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_n_points); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n_points); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_n_points); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_4);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_4)) __PYX_ERR(0, 126, __pyx_L1_error);
   __Pyx_GIVEREF(__pyx_t_3);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_3)) __PYX_ERR(0, 128, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_3)) __PYX_ERR(0, 126, __pyx_L1_error);
   __pyx_t_4 = 0;
   __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_17, __pyx_n_s_shape, __pyx_t_1) < 0) __PYX_ERR(0, 128, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_17, __pyx_n_s_shape, __pyx_t_1) < 0) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_20, __pyx_t_17); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_20, __pyx_t_17); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 126, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_20); __pyx_t_20 = 0;
@@ -9587,13 +9571,13 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
   __pyx_v_laplacian = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "grid.pyx":129
+  /* "grid.pyx":127
  *             data.append(diag * cs_inv2)
  *         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
  *         return laplacian.tocsr(), cell_to_sys_idx, sys_idx_to_cell             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_17 = __Pyx_PyObject_GetAttrStr(__pyx_v_laplacian, __pyx_n_s_tocsr); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 129, __pyx_L1_error)
+  __pyx_t_17 = __Pyx_PyObject_GetAttrStr(__pyx_v_laplacian, __pyx_n_s_tocsr); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 127, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_17);
   __pyx_t_20 = NULL;
   __pyx_t_5 = 0;
@@ -9613,20 +9597,20 @@ static PyObject *__pyx_f_4grid_7MACGrid_build_sparse(struct __pyx_obj_4grid_MACG
     PyObject *__pyx_callargs[2] = {__pyx_t_20, NULL};
     __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_17, __pyx_callargs+1-__pyx_t_5, 0+__pyx_t_5);
     __Pyx_XDECREF(__pyx_t_20); __pyx_t_20 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 129, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 127, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_17); __pyx_t_17 = 0;
   }
-  __pyx_t_17 = PyTuple_New(3); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 129, __pyx_L1_error)
+  __pyx_t_17 = PyTuple_New(3); if (unlikely(!__pyx_t_17)) __PYX_ERR(0, 127, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_17);
   __Pyx_GIVEREF(__pyx_t_1);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 0, __pyx_t_1)) __PYX_ERR(0, 129, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 0, __pyx_t_1)) __PYX_ERR(0, 127, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_cell_to_sys_idx);
   __Pyx_GIVEREF(__pyx_v_cell_to_sys_idx);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 1, __pyx_v_cell_to_sys_idx)) __PYX_ERR(0, 129, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 1, __pyx_v_cell_to_sys_idx)) __PYX_ERR(0, 127, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_sys_idx_to_cell);
   __Pyx_GIVEREF(__pyx_v_sys_idx_to_cell);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 2, __pyx_v_sys_idx_to_cell)) __PYX_ERR(0, 129, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_17, 2, __pyx_v_sys_idx_to_cell)) __PYX_ERR(0, 127, __pyx_L1_error);
   __pyx_t_1 = 0;
   __pyx_r = __pyx_t_17;
   __pyx_t_17 = 0;
@@ -11189,7 +11173,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *             cs_inv2 = 1.0 / (self.cell_size ** 2)
  *             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:             # <<<<<<<<<<<<<<
  *                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
- *                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
+ *                 diag += 1
  */
   __pyx_tuple__5 = PyTuple_Pack(3, __pyx_int_neg_1, __pyx_int_0, __pyx_int_0); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 114, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__5);

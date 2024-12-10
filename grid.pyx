@@ -113,15 +113,13 @@ cdef class MACGrid:
             cs_inv2 = 1.0 / (self.cell_size ** 2)  
             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
+                diag += 1
                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
-                    diag += 1
                     if self.solid_mask[nx_, ny_, nz_] == 0:  
                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
                         row.append(p)
                         col.append(neighbor_p)
                         data.append(-cs_inv2)  
-                else:
-                    diag += 1  
             row.append(p)
             col.append(p)
             data.append(diag * cs_inv2)  
