@@ -88,8 +88,8 @@ cdef class MACGrid:
     cpdef int index(self, i, j, k, nx, ny, nz):
             return i + j * nx + k * nx * ny
 
-    cpdef object build_sparse(self):
-        #Create the laplacian matrix to solve the linear system, matrix is of all grid cells, representing which are solid object and not
+    cpdef object build_sparse(self):     
+        #Constructs the 7 point laplacian matrix for the pressure solve.
         cdef cnp.npy_intp nx, ny, nz
         cdef list row = []
         cdef list col = []
@@ -103,27 +103,27 @@ cdef class MACGrid:
         for x in range(nx):
             for y in range(ny):
                 for z in range(nz):
-                    if self.solid_mask[x, y, z] == 0:
+                    if self.solid_mask[x, y, z] == 0:  # Dont include if within mesh
                         cell_to_sys_idx[(x, y, z)] = total_idx
                         sys_idx_to_cell[total_idx] = (x, y, z)
                         total_idx += 1
-        n_points = total_idx 
+        n_points = total_idx
         for (x, y, z), p in cell_to_sys_idx.items():
             diag = 0
+            cs_inv2 = 1.0 / (self.cell_size ** 2)  
             for dx, dy, dz in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
                 nx_, ny_, nz_ = x + dx, y + dy, z + dz
                 if 0 <= nx_ < nx and 0 <= ny_ < ny and 0 <= nz_ < nz:
                     diag += 1
-                    if self.solid_mask[nx_, ny_, nz_] == 0:
+                    if self.solid_mask[nx_, ny_, nz_] == 0:  
                         neighbor_p = cell_to_sys_idx[(nx_, ny_, nz_)]
                         row.append(p)
                         col.append(neighbor_p)
-                        data.append(-1)
+                        data.append(-cs_inv2)  
                 else:
-                    diag += 1 
+                    diag += 1  
             row.append(p)
             col.append(p)
-            data.append(diag)
+            data.append(diag * cs_inv2)  
         laplacian = coo_matrix((data, (row, col)), shape=(n_points, n_points))
         return laplacian.tocsr(), cell_to_sys_idx, sys_idx_to_cell
-

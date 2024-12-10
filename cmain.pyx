@@ -299,9 +299,9 @@ cpdef void v_boundary_conditions(MACGrid grid):
 # -- Pressure Solve --
 
 cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
-    # The backbone of the fluid behavior
+    # CG pressure solve to make it act like wind with pressure instead of just naive particles
     cdef cnp.npy_intp nx, ny, nz
-    cdef double h = grid.cell_size
+    cdef double h = grid.cell_size  
     cdef double max_vel = 0
     cdef cnp.ndarray rhs
     cdef int info = 0
@@ -312,22 +312,23 @@ cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
     n_points = A.shape[0]
     rhs = np.zeros(n_points, dtype=np.float64)
     for (x, y, z), p in cell_to_sys_idx.items():
-        u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
-        v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
-        w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
-        rhs[p] = -(u_diff + v_diff + w_diff) / h
-        max_vel = max(max_vel, get_vel(grid, x, y, z))
+        # Compute divergence 
+        u_diff = grid.u[x + 1, y, z] - grid.u[x, y, z]
+        v_diff = grid.v[x, y + 1, z] - grid.v[x, y, z]
+        w_diff = grid.w[x, y, z + 1] - grid.w[x, y, z]
+        rhs[p] = -(u_diff + v_diff + w_diff) * h  
+        max_vel = max(max_vel, get_vel(grid, x, y, z))  
     grid.max_vel = max_vel
     fixed_cell = (0, 0, 0)
     if fixed_cell in cell_to_sys_idx:
         fixed_p = cell_to_sys_idx[fixed_cell]
-        A.data[A.indptr[fixed_p]:A.indptr[fixed_p+1]] = 0
+        A.data[A.indptr[fixed_p]:A.indptr[fixed_p + 1]] = 0
         A[fixed_p, fixed_p] = 1
         rhs[fixed_p] = 0
     pressure_solution, info = cg(A, rhs, maxiter=iterations)
     if info != 0:
-        print(f"Warning: Did not converge (info={info})")
-    grid.pressure[:, :, :] = 0.0  
+        print(f"Warning: CG solver did not converge. Info={info}")
+    grid.pressure[:, :, :] = 0.0
     for p, (x, y, z) in sys_idx_to_cell.items():
         grid.pressure[x, y, z] = pressure_solution[p]
     p_boundary_conditions(grid)
