@@ -65,20 +65,26 @@ class WindSim(bpy.types.Operator):
             print(f"Error during simulation: {e}")
             return {'CANCELLED'}
 
-    def create_mesh(self):
-        mesh = bpy.data.meshes.get("ParticleMesh")
+    def create_mesh(self, i):
+        mesh = bpy.data.meshes.get(i)
         if mesh is None:
-            mesh = bpy.data.meshes.new("ParticleMesh")
+            mesh = bpy.data.meshes.new(i)
             bm = bmesh.new()
             bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.025)
             bm.to_mesh(mesh)
             bm.free()
-            material = bpy.data.materials.get("ParticleMaterial")
+
+            # Create a unique material for each mesh
+            material = bpy.data.materials.get(f"{i}_material")
             if material is None:
-                material = bpy.data.materials.new(name="ParticleMaterial")
-                material.diffuse_color = PARTICLE_COLOR
+                material = bpy.data.materials.new(name=f"{i}_material")
+                material.use_nodes = True  # Enable nodes for custom shading
+                material.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = PARTICLE_COLOR
+                material.node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value = 1.0  # Full opacity initially
+
             if len(mesh.materials) == 0:
                 mesh.materials.append(material)
+
         return mesh
 
     def create_particle_collection(self):
@@ -89,9 +95,10 @@ class WindSim(bpy.types.Operator):
         return pc
 
     def add_particles(self, particle_collection, n, cell_size, grid_yz_bounds):
-        mesh = self.create_mesh()
         particle_objects = []
+        size = len(particle_collection.objects)
         for i in range(n):
+            mesh = self.create_mesh(str(size + i))
             y = np.random.uniform(grid_yz_bounds[0], grid_yz_bounds[1])
             z = np.random.uniform(grid_yz_bounds[2], grid_yz_bounds[3])
             position = Vector((0.1, y, z))
@@ -111,35 +118,49 @@ class WindSim(bpy.types.Operator):
             if x < min_x or x > max_x or y < min_y or y > max_y or z < min_z or z > max_z:
                 for collection in particle.users_collection:
                     collection.objects.unlink(particle)
-                bpy.data.objects.remove(particle)
+                bpy.data.objects.remove(particle)  
 
     def run_simulation(self, grid, bvh_tree, num_frames, particle_collection,
-                   wind_speed, wind_acceleration, damping_factor, cell_size, grid_size):
+                       wind_speed, wind_acceleration, damping_factor, cell_size, grid_size):
         self.report({'INFO'}, "Running Simulation.")
         dt = 1.0
         grid.get_mask(bvh_tree)
-        initialize_velocity(grid, 0.01)#type: ignore 
-        min_bound, max_bound = 0, int(grid_size[0] * cell_size)
+        initialize_velocity(grid, 0.01)  # type: ignore
+        min_bound, max_bound = 0, (grid_size[0] * cell_size)
         grid_boundaries = (min_bound, max_bound, min_bound, max_bound, min_bound, max_bound)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            self.add_particles(particle_collection, n=10, cell_size = cell_size,
+            # Add new particles
+            self.add_particles(particle_collection, n=10, cell_size=cell_size,
                                grid_yz_bounds=(min_bound, max_bound, min_bound, max_bound))
-            particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0] 
+            
+            particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0]
                                            for p in particle_collection.objects])
-            # Simulate grid for time step, advecting grid
-            grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)#type: ignore 
+            # Simulate grid for time step
+            grid = cy_simulate(grid, wind_speed, dt, bvh_tree, wind_speed, wind_acceleration, damping_factor, cell_size, COEFFICIENT_OF_FRICTION)  # type: ignore
             # Apply velocity resulting from grid to particles
-            particle_positions = advect_particles(grid, particle_positions, dt, 1)#type: ignore 
+            particle_positions = advect_particles(grid, particle_positions, dt, 1)  # type: ignore
             # Handle collisions if needed
-            particle_positions = collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)#type: ignore 
-            # Update particles in blender
+            particle_positions = collide(particle_positions, bvh_tree, dt, damping_factor, COEFFICIENT_OF_FRICTION)  # type: ignore
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
-                density = get_density(grid, particle.location, cell_size)#type: ignore
-                particle["opacity"] = 1.0
+                pressure = get_pressure(grid, particle.location, cell_size)
+                pressure = pressure ** -2 if pressure != 0 else 0
+                normalized_pressure = pressure / 3000
+                color = (normalized_pressure, normalized_pressure, normalized_pressure, 1.0)
+                particle["pressure_color"] = normalized_pressure
+                material = particle.data.materials[0]  # Only one material per particle
+                bsdf = material.node_tree.nodes["Principled BSDF"]
+                bsdf.inputs["Base Color"].default_value = color
+                bsdf.inputs["Base Color"].keyframe_insert(data_path="default_value", frame=frame)
+                opacity = 1.0 if (particle_positions[i][0] > 0.2 and particle_positions[i][0] < max_bound - (cell_size * 1.1)) else 0.0
+                print(particle_positions[i][0],max_bound)
+                bsdf.inputs["Alpha"].default_value = opacity
+                bsdf.inputs["Alpha"].keyframe_insert(data_path="default_value", frame=frame)
+                particle["opacity"] = opacity
+                particle.keyframe_insert(data_path='["opacity"]', frame=frame)
                 particle.keyframe_insert(data_path="location", frame=frame)
-            self.remove_particles(particle_collection, grid_boundaries)
+            #self.remove_particles(particle_collection, grid_boundaries)
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0]
                                            for p in particle_collection.objects])
 
@@ -168,7 +189,7 @@ def register():
     bpy.types.Scene.wind_simulation_grid_size = bpy.props.IntProperty(
         name="Grid Size",
         description="Grid size",
-        default=10,
+        default=3,
         min=2,
         max=50
     )

@@ -17,6 +17,8 @@ cdef class MACGrid:
         cdef cnp.npy_intp nx = self.grid_size[0]
         cdef cnp.npy_intp ny = self.grid_size[1]
         cdef cnp.npy_intp nz = self.grid_size[2]
+        cdef max_pressure = -1e6
+        cdef min_pressure = 1e6
         self.u = np.zeros((nx+1, ny, nz), dtype=np.float64)
         self.v = np.zeros((nx, ny+1, nz), dtype=np.float64)
         self.w = np.zeros((nx, ny, nz+1), dtype=np.float64)

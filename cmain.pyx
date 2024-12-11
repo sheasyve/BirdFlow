@@ -344,20 +344,20 @@ cpdef void project(MACGrid grid):
 
 # -- Density Advection --
 
-cpdef void advect_density(MACGrid grid, double dt):
+cpdef void advect_presssure(MACGrid grid, double dt):
     # Advect pressure scalar with RK3 method
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef cnp.npy_intp x, y, z
     cdef double cell_size = grid.cell_size
-    cdef cnp.ndarray new_density
+    cdef cnp.ndarray new_pressure
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k1 = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k2 = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k3 = np.zeros(3, dtype=np.float64)
-    new_density = np.zeros_like(grid.pressure)
+    new_pressure = np.zeros_like(grid.pressure)
     for x in range(nx):
         for y in range(ny):
             for z in range(nz):
@@ -368,9 +368,8 @@ cpdef void advect_density(MACGrid grid, double dt):
                 temp_pos[:] = pos + 0.75 * dt * k2
                 k3[:] = interp_u_at_p(grid, temp_pos)
                 temp_pos[:] = pos + (2/9) * dt * k1 + (3/9) * dt * k2 + (4/9) * dt * k3
-                new_density[x, y, z] = interp_scalar_u_at_p(grid.pressure, temp_pos, cell_size)
-                print(new_density)
-    grid.pressure[:, :, :] = new_density
+                new_pressure[x, y, z] = interp_scalar_u_at_p(grid.pressure, temp_pos, cell_size)
+    grid.pressure[:, :, :] = new_pressure
 
 # -- Collisions for Particles --
 
@@ -433,7 +432,7 @@ cpdef cnp.ndarray advect_particles(MACGrid grid, cnp.ndarray particle_objects, d
 
 # -- Simulation main --
 
-cpdef double get_density(MACGrid grid, pos, cell_size):
+cpdef double get_pressure(MACGrid grid, pos, cell_size):
     cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
     temp_pos[0] = pos[0]
     temp_pos[1] = pos[1]
@@ -457,6 +456,6 @@ cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
         pressure_solve(grid, dt, iterations=50)
         project(grid)
         advect_velocities(grid, dt)  
-        advect_density(grid, dt)
+        advect_presssure(grid, dt)
         t += dt
     return grid
