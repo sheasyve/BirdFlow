@@ -46,6 +46,7 @@ class WindSim(bpy.types.Operator):
                 cell_size = scene.wind_simulation_cell_size
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
+                particle_density = scene.wind_simulation_particle_density
                 bpy.context.scene.frame_start = 1
                 bpy.context.scene.frame_end = num_frames
                 wind_speed = np.array([wind_speed_x, 0.0, 0.0], dtype=np.float64)
@@ -54,7 +55,8 @@ class WindSim(bpy.types.Operator):
                 grid = MACGrid(grid_size, cell_size)
                 particle_collection = self.create_particle_collection()
                 self.run_simulation(grid, bvh, num_frames, particle_collection,
-                                    wind_speed, wind_acceleration, damping_factor, cell_size, grid_size,scene)
+                                    wind_speed, wind_acceleration, damping_factor, 
+                                    cell_size, grid_size,scene, particle_density)
                 self.report({'INFO'}, "Simulation finished.")
                 return {'FINISHED'}
             else:
@@ -73,18 +75,14 @@ class WindSim(bpy.types.Operator):
             bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=8, radius=.025)
             bm.to_mesh(mesh)
             bm.free()
-
-            # Create a unique material for each mesh
             material = bpy.data.materials.get(f"{i}_material")
             if material is None:
                 material = bpy.data.materials.new(name=f"{i}_material")
-                material.use_nodes = True  # Enable nodes for custom shading
+                material.use_nodes = True  
                 material.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = PARTICLE_COLOR
-                material.node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value = 1.0  # Full opacity initially
-
+                material.node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value = 1.0 
             if len(mesh.materials) == 0:
                 mesh.materials.append(material)
-
         return mesh
 
     def create_particle_collection(self):
@@ -112,7 +110,8 @@ class WindSim(bpy.types.Operator):
         return particle_objects
 
     def run_simulation(self, grid, bvh_tree, num_frames, particle_collection,
-                       wind_speed, wind_acceleration, damping_factor, cell_size, grid_size, scene):
+                       wind_speed, wind_acceleration, damping_factor, 
+                       cell_size, grid_size, scene, particle_density):
         self.report({'INFO'}, "Running Simulation.")
         dt = 1.0
         grid.get_mask(bvh_tree)
@@ -121,9 +120,8 @@ class WindSim(bpy.types.Operator):
         grid_boundaries = (min_bound, max_bound, min_bound, max_bound, min_bound, max_bound)
         for frame in range(1, num_frames + 1):
             bpy.context.scene.frame_set(frame)
-            self.add_particles(particle_collection, n=10, cell_size=cell_size,
+            self.add_particles(particle_collection, particle_density, cell_size=cell_size,
                                grid_yz_bounds=(min_bound, max_bound, min_bound, max_bound))
-            
             particle_positions = np.array([[p.location.x, p.location.y, p.location.z, 0.0, 0.0, 0.0]
                                            for p in particle_collection.objects])
             # Simulate grid for time step
@@ -144,12 +142,11 @@ class WindSim(bpy.types.Operator):
                 else:
                     color = (0.5, 0.5, 1.0, 1.0)  
                 particle["pressure_color"] = normalized_pressure
-                material = particle.data.materials[0]  # Only one material per particle
+                material = particle.data.materials[0]  
                 bsdf = material.node_tree.nodes["Principled BSDF"]
                 bsdf.inputs["Base Color"].default_value = color
                 bsdf.inputs["Base Color"].keyframe_insert(data_path="default_value", frame=frame)
                 opacity = 1.0 if (particle_positions[i][0] > 0.2 and particle_positions[i][0] < max_bound - (cell_size * 1.1)) else 0.0
-                print(normalized_pressure)
                 bsdf.inputs["Alpha"].default_value = opacity
                 bsdf.inputs["Alpha"].keyframe_insert(data_path="default_value", frame=frame)
                 particle["opacity"] = opacity
@@ -171,6 +168,7 @@ class WindSimPanel(bpy.types.Panel):
         layout.label(text="Simulator Settings:")
         layout.prop(scene, "wind_simulation_grid_size")
         layout.prop(scene, "wind_simulation_cell_size")
+        layout.prop(scene, "wind_simulation_particle_density")
         layout.prop(scene, "wind_simulation_wind_speed")
         layout.prop(scene, "wind_simulation_wind_acceleration_x")
         layout.prop(scene, "wind_simulation_damping_factor") 
@@ -194,6 +192,13 @@ def register():
         default=1,
         min=0.001,
         max=5.0
+    )
+    bpy.types.Scene.wind_simulation_particle_density = bpy.props.IntProperty(
+        name="Particles Added Per Frame",
+        description="Number of particles added to the simulation each frame",
+        default=10,
+        min=1,
+        max = 1000
     )
     bpy.types.Scene.wind_simulation_wind_speed = bpy.props.FloatProperty(
         name="Wind Speed",
@@ -234,6 +239,7 @@ def unregister():
     bpy.utils.unregister_class(WindSimPanel)
     del bpy.types.Scene.wind_simulation_grid_size
     del bpy.types.Scene.wind_simulation_cell_size
+    del bpy.types.Scene.wind_simulation_particle_density
     del bpy.types.Scene.wind_simulation_wind_speed
     del bpy.types.Scene.wind_simulation_wind_acceleration_x
     del bpy.types.Scene.wind_simulation_cell_size
