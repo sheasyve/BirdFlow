@@ -43,7 +43,7 @@ class WindSim(bpy.types.Operator):
                 size = scene.wind_simulation_grid_size
                 grid_size = (size, size, size)
                 wind_speed_x = scene.wind_simulation_wind_speed
-                cell_size = scene.wind_simulation_particle_spread
+                cell_size = scene.wind_simulation_cell_size
                 wind_acceleration_x = scene.wind_simulation_wind_acceleration_x
                 damping_factor = scene.wind_simulation_damping_factor
                 bpy.context.scene.frame_start = 1
@@ -54,7 +54,7 @@ class WindSim(bpy.types.Operator):
                 grid = MACGrid(grid_size, cell_size)
                 particle_collection = self.create_particle_collection()
                 self.run_simulation(grid, bvh, num_frames, particle_collection,
-                                    wind_speed, wind_acceleration, damping_factor, cell_size, grid_size)
+                                    wind_speed, wind_acceleration, damping_factor, cell_size, grid_size,scene)
                 self.report({'INFO'}, "Simulation finished.")
                 return {'FINISHED'}
             else:
@@ -121,7 +121,7 @@ class WindSim(bpy.types.Operator):
                 bpy.data.objects.remove(particle)  
 
     def run_simulation(self, grid, bvh_tree, num_frames, particle_collection,
-                       wind_speed, wind_acceleration, damping_factor, cell_size, grid_size):
+                       wind_speed, wind_acceleration, damping_factor, cell_size, grid_size, scene):
         self.report({'INFO'}, "Running Simulation.")
         dt = 1.0
         grid.get_mask(bvh_tree)
@@ -146,15 +146,19 @@ class WindSim(bpy.types.Operator):
                 particle.location = Vector(particle_positions[i][:3])
                 pressure = get_pressure(grid, particle.location, cell_size)
                 pressure = pressure ** -2 if pressure != 0 else 0
-                normalized_pressure = pressure / 3000
-                color = (normalized_pressure, normalized_pressure, normalized_pressure, 1.0)
+                normalized_pressure = pressure / 1000000
+                normalized_pressure = 1.0 if normalized_pressure > 1.0 else normalized_pressure
+                if scene.wind_simulation_dynamic_colors:
+                    color = (1, normalized_pressure, normalized_pressure, 1.0)  # Dynamic color based on pressure
+                else:
+                    color = (0.5, 0.5, 0.5, 1.0)  # Grey color if dynamic colors are disabled
                 particle["pressure_color"] = normalized_pressure
                 material = particle.data.materials[0]  # Only one material per particle
                 bsdf = material.node_tree.nodes["Principled BSDF"]
                 bsdf.inputs["Base Color"].default_value = color
                 bsdf.inputs["Base Color"].keyframe_insert(data_path="default_value", frame=frame)
                 opacity = 1.0 if (particle_positions[i][0] > 0.2 and particle_positions[i][0] < max_bound - (cell_size * 1.1)) else 0.0
-                print(particle_positions[i][0],max_bound)
+                print(normalized_pressure)
                 bsdf.inputs["Alpha"].default_value = opacity
                 bsdf.inputs["Alpha"].keyframe_insert(data_path="default_value", frame=frame)
                 particle["opacity"] = opacity
@@ -176,11 +180,12 @@ class WindSimPanel(bpy.types.Panel):
         scene = context.scene
         layout.label(text="Simulator Settings:")
         layout.prop(scene, "wind_simulation_grid_size")
+        layout.prop(scene, "wind_simulation_cell_size")
         layout.prop(scene, "wind_simulation_wind_speed")
         layout.prop(scene, "wind_simulation_wind_acceleration_x")
         layout.prop(scene, "wind_simulation_damping_factor") 
-        layout.prop(scene, "wind_simulation_particle_spread")
         layout.prop(scene, "wind_simulation_num_frames")
+        layout.prop(scene, "wind_simulation_dynamic_colors")  # Add the checkbox here
         layout.operator("object.wind_sim_operator", text="Run Simulation")
 
 def register():
@@ -192,6 +197,13 @@ def register():
         default=3,
         min=2,
         max=50
+    )
+    bpy.types.Scene.wind_simulation_cell_size = bpy.props.FloatProperty(
+        name="Cell Size",
+        description="Distance between grid cells, the density of the grid which determines resolution of the simulation",
+        default=1,
+        min=0.001,
+        max=5.0
     )
     bpy.types.Scene.wind_simulation_wind_speed = bpy.props.FloatProperty(
         name="Wind Speed",
@@ -214,13 +226,6 @@ def register():
         min=0.0,
         max=1.0
     )
-    bpy.types.Scene.wind_simulation_particle_spread = bpy.props.FloatProperty(
-        name="Cell Size",
-        description="Distance between particles when they are created",
-        default=1,
-        min=0.001,
-        max=5.0
-    )
     bpy.types.Scene.wind_simulation_num_frames = bpy.props.IntProperty(
         name="Number of Frames",
         description="Total number of frames for the simulation",
@@ -228,16 +233,20 @@ def register():
         min=1,
         max=1000
     )
+    bpy.types.Scene.wind_simulation_dynamic_colors = bpy.props.BoolProperty(
+        name="Dynamic Colors",
+        description="Enable or disable dynamic colors based on pressure",
+        default=True  # Default is enabled (colors are dynamic)
+    )
 
 def unregister():
     bpy.utils.unregister_class(WindSim)
     bpy.utils.unregister_class(WindSimPanel)
     del bpy.types.Scene.wind_simulation_grid_size
+    del bpy.types.Scene.wind_simulation_cell_size
     del bpy.types.Scene.wind_simulation_wind_speed
     del bpy.types.Scene.wind_simulation_wind_acceleration_x
-    del bpy.types.Scene.wind_simulation_particle_spread
+    del bpy.types.Scene.wind_simulation_cell_size
     del bpy.types.Scene.wind_simulation_num_frames
-    del bpy.types.Scene.wind_simulation_damping_factor  
-
-if __name__ == "__main__":
-    register()
+    del bpy.types.Scene.wind_simulation_damping_factor
+    del bpy.types.Scene.wind_simulation_dynamic_colors
