@@ -1,91 +1,8 @@
 # Custom Aerodynamic Simulator (Blender-Extension)
 
-### Proof of concept stage 
-<img src="https://github.com/user-attachments/assets/50343c49-76ed-40be-afd1-28e302620c59" alt="0019" width="600"/>
-<img src="https://github.com/user-attachments/assets/951b3b26-a395-4636-8b12-4a4dee7ed8f4" alt="0028" width="600"/>
-<img src="https://github.com/user-attachments/assets/1deba812-3a6a-4a65-a236-6459627b2c1c" alt="0044" width="600"/>
-<img src="https://github.com/user-attachments/assets/f01973f1-6573-463f-b63b-d913fe3cb482" alt="image"/>
-
-My goal is to build a custom aerodynamic simulation framework in Blender, distributed as an open-source extension through the Blender Extensions Platform. My extension will enable users to press a button to have a somewhat realistic aerodynamic simulation animation automatically generated with their current Blender scene.
-
-While the extension will leverage Blender for rendering systems, this will be a custom animation system, as all of the physics calculations for airflow movement, keyframing, and visualization through object creation will be done within my code. I wanted to use blender because it is an amazing free tool that I enjoy using, with robust systems in place.
-
-The user will create their scene in Blender, adjust some parameters in the extension, and click a button to perform the simulation. he extension will use a custom-built physics engine to perform a grid-based Eulerian fluid simulation for airflow over the scene, given the input parameters, which is then automatically animated and keyframed. Currently, my demo is loosely working with very unrealistic physics using a Lagrangian particle simulation.
-
-### Modeling Strategy
-
-- **Framework**: Eulerian fluid grid based on Navier-Stokes, with Lagrangian particle system as a backup.
-- **Integration**: Implicit integration using a Backward Euler method. My current demo is using explicit integration.
-- **Compressibility**: Incompressible flow model. This should be accurate for simulations below Mach 0.3.
-- **Turbulence Model**: k-ε turbulence model.
-- **Boundary Conditions**: No-slip boundary condition.
-- **Grid Resolution**: Uniform grid with adjustable resolution.
-- **Pressure Solver**: Conjugate Gradient Solver.
-- **Stability and CFL Condition**: Courant-Friedrichs-Lewy condition.
-- **Numerical Diffusion**: MacCormack advection scheme.
-- **Visuals**: Particle to grid, vector arrow to grid, and volumetric grid renderings.
-
-### Evaluation Strategy
-
-#### Accuracy
-
-- Comparing the resulting grid to expected calculations.
-- Compare the simulation visually to real examples or other simulations.
-
-#### Performance
-
-- Time to generate the animation, or frames per second if real time interaction is implemented.
-- Performance should be measured relative to input parameters, like grid density, number of frames and particle count.
-
-#### Plan B: The project can be reduced in scope in the following ways dynamically
-
-- Implement one visualization method.
-- Implement less techniques for realistic air flow.
-- Continue to use built-in ray casting.
-- Abandon real-time interaction.
-
-### Backup Projects
-
-1. **Easier Aerodynamic Engine**: I already have a working prototype using lagrangian methods, I could just improve that.
-
-2. **Liquid simulation**: Liquid simulation has more resources, it would be easier to do liquids.
-
-## 2. Related Work
-
-- Equations needed for Eulerian fluid simulation in many forms [1].
-
-- Detailed instructions for creating a grid-based fluid simulation [2].
-
-- Equations for Navier-Stokes-based fluid simulation and equations for fluid-solid interaction [3].
-
-- Five different models of increasing complexity for turbulence modeling [4].
-
-- Enhancing realism and efficiency using machine learning [5].
-
-- A method for fluid simulation using a hybrid Lagrangian and Eulerian method [6].
-
-(APA citation not used as it was not concise enough.)
-
-## 3. Plan
-
-Distribute the Blender (4.2.1) extension by building it using the Wheels packager (self-contained, cross-platform, easily installed).
-
-### Compilation
-
-First install all dependencies and libraries upon the blenders python installation. 
-For example, it could be here /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
-
-Then build the application with blenders python.
-```bash
-/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
-/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py bdist_wheel
-```
-Finally, create simlinks from each of the generated .so files to blenders applications folder.
-Blender should now see the extension.
-
 ### Tools, OS, and Libraries
 
-#### OS
+#### OS (Cross Platform not yet working.)
 
 - **Linux**: pop-os 6.9.3-76060903-generic, x86_64 x86_64 GNU/Linux
 
@@ -95,30 +12,54 @@ Blender should now see the extension.
 
 #### Code
 
-- **Languages**: Python 3.11, Cython 3.0.11, and potentially CUDA 12.6.1
+- **Languages**: Python 3.11, Cython 3.0.11
 
 #### Libraries
 
 - **bpy**: Blender API
 - **numpy**: Number processing
-- **eigen**: Linear algebra
 - **wheels**: Application packaging and distribution
 - **cython**: Python to C bridge
 - **scipy**: Algorithms and data structures
 
-#### Textures, Models, Datasets
+### Compilation
 
-- The application should require no textures, models, or datasets beyond installing blender.
+First install above libraries with pip upon the blenders python installation and possibly system python if needed.
+For example, it could be here /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 
-### Aerodynamic Simulation Project Timeline
-![Aerodynamic Simulation Project Timeline](./image.png){ width=50% }
+Modify setup.py so that the include lines point to **your** blenders python, such as /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 
-### Potential Difficulties
+Then build the application with Blenders python as below.
+The second line is optional, and only for distribution.
 
-- Learning the blender API as I go.
-- Balancing realistic physics with real-time rendering.
-- Learning every algorithm required for this project thoroughly.
-- Over-focusing on optimization.
+```bash
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py bdist_wheel
+```
+
+Finally, create simlinks from **each** of the generated .so files to blenders applications folder **Important**. It is a good idea to put them in a subfolder. 
+For example, mine are placed here /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon
+I used these commands.
+
+```bash
+ln -s /path/to/grid.cpython-311-x86_64-linux-gnu.so /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon/grid.cpython-311-x86_64-linux-gnu.so
+ln -s /path/to/cmain.cpython-311-x86_64-linux-gnu.so /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon/cmain.cpython-311-x86_64-linux-gnu.so
+```
+
+Blender should now see the extension.
+
+### Modeling Strategy
+
+- **Framework**: Eulerian fluid grid based on Navier-Stokes.
+- **Integration**: A mix of forward euler and runge-kugga 3 stage integration.
+- **Compressibility**: Incompressible flow model. This should be accurate for simulations below Mach 0.3.
+- **Boundary Conditions**: No-slip boundary conditions for velocity, Neumann boundary conditions for pressure.
+- **Grid Resolution**: Uniform grid with adjustable resolution.
+- **Pressure Solver**: Conjugate Gradient Solver from scipy with solid mask built from blender object.
+- **Stability and CFL Condition**: Courant-Friedrichs-Lewy condition applied based on maximum velocity in simulation.
+- **Numerical Diffusion**: RK3 advection.
+- **Visuals**: Wind particle system. Pressure and velocity to particle color coming soon. Vector arrow and volumetric renderings may come.
+- **Wind Movement**: Particles independent and influenced by fluid grid, lagrangian particle-object collision.
 
 ## 4. Bibliography
 
