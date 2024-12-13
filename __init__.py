@@ -133,15 +133,14 @@ class WindSim(bpy.types.Operator):
             # Keyframe result
             for i, particle in enumerate(particle_collection.objects):
                 particle.location = Vector(particle_positions[i][:3])
-                pressure = get_pressure(grid, particle.location, cell_size)
-                pressure = pressure ** -2 if pressure != 0 else 0
-                normalized_pressure = pressure / 1000000
-                normalized_pressure = 1.0 if normalized_pressure > 1.0 else normalized_pressure
                 if scene.wind_simulation_dynamic_colors:
+                    pressure = get_pressure(grid, particle.location, cell_size)
+                    pressure = pressure ** -2 if pressure != 0 else 0 #Not a robust way to normalise addmittedly, but somehow worked better than actually normalizing.
+                    normalized_pressure = pressure / 1000000
+                    normalized_pressure = 1.0 if normalized_pressure > 1.0 else normalized_pressure
                     color = (1, normalized_pressure, normalized_pressure, 1.0)  
                 else:
                     color = (0.5, 0.5, 1.0, 1.0)  
-                particle["pressure_color"] = normalized_pressure
                 material = particle.data.materials[0]  
                 bsdf = material.node_tree.nodes["Principled BSDF"]
                 bsdf.inputs["Base Color"].default_value = color
@@ -182,14 +181,14 @@ def register():
     bpy.types.Scene.wind_simulation_grid_size = bpy.props.IntProperty(
         name="Grid Size",
         description="Grid size",
-        default=3,
+        default=10,
         min=2,
         max=50
     )
     bpy.types.Scene.wind_simulation_cell_size = bpy.props.FloatProperty(
         name="Cell Size",
         description="Distance between grid cells, the density of the grid which determines resolution of the simulation",
-        default=1,
+        default=.5,
         min=0.001,
         max=5.0
     )
@@ -231,7 +230,7 @@ def register():
     bpy.types.Scene.wind_simulation_dynamic_colors = bpy.props.BoolProperty(
         name="Dynamic Colors",
         description="Enable or disable dynamic colors based on pressure",
-        default=True  
+        default=False  
     )
 
 def unregister():
