@@ -18,6 +18,8 @@ cdef class MACGrid:
     cdef cnp.ndarray position    # positions (pos) of cell center (array sz: nx, ny, nz, 3)
     cdef cnp.ndarray solid_mask  # Array representing the mesh, for collisions
     cdef cnp.ndarray divergence  # Divergence of the velocities for pressure solving
+    cdef double max_pressure
+    cdef double min_pressure
     cpdef int index(self, i, j, k, nx, ny, nz) # Get linear index of cell
     cpdef cnp.ndarray get_mask(self, object bvh_tree) # Build solid object mask, at start of simulation
     cpdef cnp.ndarray get_cell_position(self, cnp.npy_intp x, cnp.npy_intp y, cnp.npy_intp z)

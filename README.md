@@ -1,8 +1,9 @@
-# Custom Aerodynamic Simulator (Blender-Extension)
+
+# BirdFlow (Blender-Extension)
 
 ### Tools, OS, and Libraries
 
-#### OS (Linux required to compile, however application will be cross platform)
+#### OS (Cross Platform not yet working.)
 
 - **Linux**: pop-os 6.9.3-76060903-generic, x86_64 x86_64 GNU/Linux
 
@@ -18,27 +19,37 @@
 
 - **bpy**: Blender API
 - **numpy**: Number processing
-- **eigen**: Linear algebra
 - **wheels**: Application packaging and distribution
 - **cython**: Python to C bridge
 - **scipy**: Algorithms and data structures
 
 ### Compilation
 
-First install above libraries with pip upon the blenders python installation and possibly system pytthon as well. 
-For example, it could be here /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
+First install blender for linux from the blender site.
+
+Install the above libraries with pip upon the blenders python installation and possibly system python if needed. Blender's python can be used in the terminal, in the scripting tab of the program.
+For me, blender's python was located here.
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 
 Modify setup.py so that the include lines point to **your** blenders python, such as /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 
-Then build the application with blenders python.
+Then build the application with Blenders python as below.
 The second line is optional, and only for distribution.
+
 ```bash
 /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py build_ext --inplace
 /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11 setup.py bdist_wheel
 ```
 
-Finally, create simlinks from **each** of the generated .so files to blenders applications folder **Important**.
-For example, mine are placed here /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon/cmain.cpython-311-x86_64-linux-gnu.so
+Finally, create simlinks from **each** of the generated .so files to blenders applications folder **Important**. It is a good idea to put them in a subfolder. 
+For example, mine are placed here /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon
+I used these commands.
+
+```bash
+ln -s /path/to/grid.cpython-311-x86_64-linux-gnu.so /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon/grid.cpython-311-x86_64-linux-gnu.so
+ln -s /path/to/cmain.cpython-311-x86_64-linux-gnu.so /home/ssyverson/.config/blender/4.2/scripts/addons/cmain_addon/cmain.cpython-311-x86_64-linux-gnu.so
+```
+
 Blender should now see the extension.
 
 ### Modeling Strategy
@@ -46,9 +57,8 @@ Blender should now see the extension.
 - **Framework**: Eulerian fluid grid based on Navier-Stokes.
 - **Integration**: A mix of forward euler and runge-kugga 3 stage integration.
 - **Compressibility**: Incompressible flow model. This should be accurate for simulations below Mach 0.3.
-- **Turbulence Model**: k-ε turbulence model (Yet to be implemented).
 - **Boundary Conditions**: No-slip boundary conditions for velocity, Neumann boundary conditions for pressure.
-- **Grid Resolution**: Uniform grid with adjustable resolution (Currently not adjustable).
+- **Grid Resolution**: Uniform grid with adjustable resolution.
 - **Pressure Solver**: Conjugate Gradient Solver from scipy with solid mask built from blender object.
 - **Stability and CFL Condition**: Courant-Friedrichs-Lewy condition applied based on maximum velocity in simulation.
 - **Numerical Diffusion**: RK3 advection.

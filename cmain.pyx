@@ -267,21 +267,6 @@ cpdef void v_boundary_conditions(MACGrid grid):
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
-    for x in range(1, nx - 1):
-        for y in range(1, ny - 1):
-            for z in range(1, nz - 1):
-                if grid.solid_mask[x-1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.u[x, y, z] = 0.0
-                if grid.solid_mask[x+1, y, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.u[x, y, z] = 0.0
-                if grid.solid_mask[x, y-1, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.v[x, y, z] = 0.0
-                if grid.solid_mask[x, y+1, z] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.v[x, y, z] = 0.0
-                if grid.solid_mask[x, y, z-1] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.w[x, y, z] = 0.0
-                if grid.solid_mask[x, y, z+1] == 1 and grid.solid_mask[x, y, z] == 0:
-                    grid.w[x, y, z] = 0.0
     # Handle boundaries at the edges of the grid
     for y in range(ny):
         for z in range(nz):
@@ -299,9 +284,9 @@ cpdef void v_boundary_conditions(MACGrid grid):
 # -- Pressure Solve --
 
 cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
-    # The backbone of the fluid behavior
+    # CG pressure solve to make it act like wind with pressure instead of just naive particles
     cdef cnp.npy_intp nx, ny, nz
-    cdef double h = grid.cell_size
+    cdef double h = grid.cell_size  
     cdef double max_vel = 0
     cdef cnp.ndarray rhs
     cdef int info = 0
@@ -312,22 +297,23 @@ cpdef void pressure_solve(MACGrid grid, double dt, int iterations=50):
     n_points = A.shape[0]
     rhs = np.zeros(n_points, dtype=np.float64)
     for (x, y, z), p in cell_to_sys_idx.items():
-        u_diff = grid.u[x+1, y, z] - grid.u[x, y, z]
-        v_diff = grid.v[x, y+1, z] - grid.v[x, y, z]
-        w_diff = grid.w[x, y, z+1] - grid.w[x, y, z]
-        rhs[p] = -(u_diff + v_diff + w_diff) / h
-        max_vel = max(max_vel, get_vel(grid, x, y, z))
+        # Compute divergence 
+        u_diff = grid.u[x + 1, y, z] - grid.u[x, y, z]
+        v_diff = grid.v[x, y + 1, z] - grid.v[x, y, z]
+        w_diff = grid.w[x, y, z + 1] - grid.w[x, y, z]
+        rhs[p] = -(u_diff + v_diff + w_diff) * h  
+        max_vel = max(max_vel, get_vel(grid, x, y, z))  
     grid.max_vel = max_vel
     fixed_cell = (0, 0, 0)
     if fixed_cell in cell_to_sys_idx:
         fixed_p = cell_to_sys_idx[fixed_cell]
-        A.data[A.indptr[fixed_p]:A.indptr[fixed_p+1]] = 0
+        A.data[A.indptr[fixed_p]:A.indptr[fixed_p + 1]] = 0
         A[fixed_p, fixed_p] = 1
         rhs[fixed_p] = 0
     pressure_solution, info = cg(A, rhs, maxiter=iterations)
     if info != 0:
-        print(f"Warning: Did not converge (info={info})")
-    grid.pressure[:, :, :] = 0.0  
+        print(f"Warning: CG solver did not converge. Info={info}")
+    grid.pressure[:, :, :] = 0.0
     for p, (x, y, z) in sys_idx_to_cell.items():
         grid.pressure[x, y, z] = pressure_solution[p]
     p_boundary_conditions(grid)
@@ -358,20 +344,20 @@ cpdef void project(MACGrid grid):
 
 # -- Density Advection --
 
-cpdef void advect_density(MACGrid grid, double dt):
-    # Advect density scalar with RK3 method
+cpdef void advect_presssure(MACGrid grid, double dt):
+    # Advect pressure scalar with RK3 method
     cdef cnp.npy_intp nx = grid.grid_size[0]
     cdef cnp.npy_intp ny = grid.grid_size[1]
     cdef cnp.npy_intp nz = grid.grid_size[2]
     cdef cnp.npy_intp x, y, z
     cdef double cell_size = grid.cell_size
-    cdef cnp.ndarray new_density
+    cdef cnp.ndarray new_pressure
     cdef cnp.ndarray pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k1 = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k2 = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray k3 = np.zeros(3, dtype=np.float64)
-    new_density = np.zeros_like(grid.density)
+    new_pressure = np.zeros_like(grid.pressure)
     for x in range(nx):
         for y in range(ny):
             for z in range(nz):
@@ -382,8 +368,8 @@ cpdef void advect_density(MACGrid grid, double dt):
                 temp_pos[:] = pos + 0.75 * dt * k2
                 k3[:] = interp_u_at_p(grid, temp_pos)
                 temp_pos[:] = pos + (2/9) * dt * k1 + (3/9) * dt * k2 + (4/9) * dt * k3
-                new_density[x, y, z] = interp_scalar_u_at_p(grid.density, temp_pos, cell_size)
-    grid.density[:, :, :] = new_density
+                new_pressure[x, y, z] = interp_scalar_u_at_p(grid.pressure, temp_pos, cell_size)
+    grid.pressure[:, :, :] = new_pressure
 
 # -- Collisions for Particles --
 
@@ -391,9 +377,14 @@ cpdef void redirect_particle_velocity(cnp.ndarray vel, cnp.ndarray normal, doubl
     # Reflect damped velocity based on collision normal 
     cdef cnp.ndarray reflected_u = np.zeros(3, dtype=np.float64)
     cdef cnp.ndarray tangent_u = np.zeros(3, dtype=np.float64)
-    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * .95
+    reflected_u[:] = (vel - 2 * np.dot(vel, normal) * normal) * damping_factor
     tangent_u[:] = reflected_u - np.dot(reflected_u, normal) * normal
-    reflected_u[:] -= friction * tangent_u
+    if np.linalg.norm(tangent_u) > 1e-6:  
+        reflected_u[:] -= friction * tangent_u
+    initial_magnitude = np.linalg.norm(vel)
+    final_magnitude = np.linalg.norm(reflected_u)
+    if final_magnitude > initial_magnitude:
+        reflected_u[:] *= initial_magnitude / final_magnitude
     vel[:] = reflected_u
 
 cpdef cnp.ndarray collide(cnp.ndarray particle_objects, object bvh_tree, double dt, double damping_factor, double friction):
@@ -446,6 +437,13 @@ cpdef cnp.ndarray advect_particles(MACGrid grid, cnp.ndarray particle_objects, d
 
 # -- Simulation main --
 
+cpdef double get_pressure(MACGrid grid, pos, cell_size):
+    cdef cnp.ndarray temp_pos = np.zeros(3, dtype=np.float64)
+    temp_pos[0] = pos[0]
+    temp_pos[1] = pos[1]
+    temp_pos[2] = pos[2]
+    return interp_scalar_u_at_p(grid.pressure, temp_pos, cell_size)
+
 cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt, 
         object bvh_tree, cnp.ndarray wind_speed, cnp.ndarray wind_acceleration, 
         double damping_factor, double cell_size, double friction):
@@ -463,6 +461,6 @@ cpdef MACGrid cy_simulate(MACGrid grid, cnp.ndarray wind, double initial_dt,
         pressure_solve(grid, dt, iterations=50)
         project(grid)
         advect_velocities(grid, dt)  
-        advect_density(grid, dt)
+        advect_presssure(grid, dt)
         t += dt
     return grid
