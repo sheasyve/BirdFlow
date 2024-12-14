@@ -1,4 +1,4 @@
-# Custom Aerodynamic Simulator (Blender-Extension)
+# BirdFlow (Blender-Extension)
 
 ### Tools, OS, and Libraries
 
@@ -24,8 +24,11 @@
 
 ### Compilation
 
-First install above libraries with pip upon the blenders python installation and possibly system python if needed.
-For example, it could be here /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
+First install blender for linux from the blender site.
+
+Install the above libraries with pip upon the blenders python installation and possibly system python if needed. Blender's python can be used in the terminal, in the scripting tab of the program.
+For me, blender's python was located here.
+/home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 
 Modify setup.py so that the include lines point to **your** blenders python, such as /home/ssyverson/Documents/blender-4.2.1-linux-x64/4.2/python/bin/python3.11
 

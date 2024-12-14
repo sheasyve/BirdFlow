@@ -188,7 +188,7 @@ def register():
     bpy.types.Scene.wind_simulation_cell_size = bpy.props.FloatProperty(
         name="Cell Size",
         description="Distance between grid cells, the density of the grid which determines resolution of the simulation",
-        default=.5,
+        default=1.,
         min=0.001,
         max=5.0
     )
