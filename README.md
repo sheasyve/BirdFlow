@@ -1,5 +1,10 @@
+# <a href = "https://sheasyve.dev/projects/birdflow.html"> BirdFlow (Blender-Extension) </a>
 
-# BirdFlow (Blender-Extension)
+### Overview
+
+Birdflow is a tool for generating wind simulations in Blender, built with Python and Cython. The extension can be used to generate realistic looking particle based visualizations of air on an object. Realistic air movement beyond naive collision can be observed, as particles avoid high pressure areas and gravitate towards low pressure areas. Collisions are convincing with dynamic velocity damping and redirection, with tangential friction being applied.
+
+https://github.com/user-attachments/assets/8cf4303a-53f4-46a8-b993-bcdad8c6f65f
 
 ### Tools, OS, and Libraries
 
@@ -65,7 +70,12 @@ Blender should now see the extension.
 - **Visuals**: Wind particle system. Pressure and velocity to particle color coming soon. Vector arrow and volumetric renderings may come.
 - **Wind Movement**: Particles independent and influenced by fluid grid, lagrangian particle-object collision.
 
-## 4. Bibliography
+### Technical Breakdown
+
+The engine uses a Eulerian grid with a Conjugate Gradient solver to simulate incompressible flow by solving the Navier-Stokes equations. Visuals are rendered using particles, for a simple way to display the behavior of the airflow. This involved using Lagrangian methods for particle collisions and movement, making the simulation a hybrid approach having both Eulerian and Lagrangian aspects.
+The particles are first advected with a Runge-Kutta 3rd order method, and then pressure in the simulation is calculated using the conjugate gradient solver from SciPy. Pressure changes are distributed through the grid, and particle velocities are updated accordingly after checking for collisions.
+
+## Bibliography
 
 1. Drazin, P. G., & Riley, N. (2006). *The Navier-Stokes equations: A classification of flows and exact solutions* (Vol. 13). Cambridge University Press. [https://books.google.ca/books?hl=en&lr=&id=9SHzrFhVO30C&oi=fnd&pg=PR9&dq=navier-stokes+solutions&ots=buIuaVJAGl&sig=Rb0-MXnH4fKoYrNmVeSFd-8s5OM#v=onepage&q=navier-stokes%20solutions&f=false](https://books.google.ca/books?hl=en&lr=&id=9SHzrFhVO30C&oi=fnd&pg=PR9&dq=navier-stokes+solutions&ots=buIuaVJAGl&sig=Rb0-MXnH4fKoYrNmVeSFd-8s5OM#v=onepage&q=navier-stokes%20solutions&f=false)
 
